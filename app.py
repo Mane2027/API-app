@@ -1,16 +1,21 @@
-import os
-from datetime import timedelta, datetime
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
-import bcrypt
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import (
-    JWTManager,
-    create_access_token,
-    jwt_required,
-    get_jwt,
+app = FastAPI(
+    title="API de tienda de belleza",
+    description="Documentación de la API para la gestión de productos.",
+    version="1.0.0"
 )
-from flask_cors import CORS
+
+# Activar la API para ser consumida desde otro dominio
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # permite cualquier origen (CodePen incluido)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 
 # ---------------------------------------------------------------------------
 # Configuración de la aplicación
