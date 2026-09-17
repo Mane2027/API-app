@@ -119,26 +119,26 @@ Se pueden combinar, ej: `GET /api/products?category=cuidado_facial&lowStock=true
 
 1. Registrar usuario:
 ```bash
-curl -X POST http://localhost:5000/api/auth/register \
+curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Carolina Gomez","email":"carolina@tiendabelleza.com","contraseña":"123456","rol":"admin"}'
 ```
 
 2. Iniciar sesión (copia el `token` de la respuesta):
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"carolina@tiendabelleza.com","password":"123456"}'
 ```
 
 3. Usar el token en las siguientes peticiones:
 ```bash
-curl -X POST http://localhost:5000/api/products \
+curl -X POST http://localhost:8000/api/products \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer TU_TOKEN_AQUI" \
   -d '{"sku":"MKP-001","name":"Labial Mate Rojo Pasion","brand":"Maybelline","category":"maquillaje","price":35000,"stock":25,"expiration_date":"2027-06-30"}'
 
-curl "http://localhost:5000/api/products?lowStock=true" \
+curl "http://localhost:8000/api/products?lowStock=true" \
   -H "Authorization: Bearer TU_TOKEN_AQUI"
 ```
 
