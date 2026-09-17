@@ -17,8 +17,8 @@ README.md         -> Este archivo
 ```
 
 ## Arquitectura interna (POO), dentro de app.py
-- **Modelos** (`User`, `Product`): clases ORM de SQLAlchemy que representan las tablas.
-- **Servicios** (`AuthService`, `UserService`, `ProductService`): clases con la lógica
+- **Modelos** (`Usuarios`, `Productos`): clases ORM de SQLAlchemy que representan las tablas.
+- **Servicios** (`Servicio de autorizacion`, `Servicio al usuario`, `Servicio de productos`): clases con la lógica
   de negocio y el acceso a datos.
 - **Rutas**: funciones Flask que reciben la petición HTTP y delegan en los servicios.
 - **ApiError**: excepción propia con código HTTP, capturada por un manejador global.
@@ -30,40 +30,40 @@ Flujo de cada petición: `ruta -> service -> modelo (SQLAlchemy) -> base de dato
 ### Usuario (`users`)
 | Campo    | Tipo               | Notas                                    |
 |----------|--------------------|--------------------------------------------|
-| name     | string             | obligatorio                                 |
+| Nombre     | string             | obligatorio                                 |
 | email    | string             | obligatorio, único                          |
-| password | string (hash)      | obligatorio, encriptado con bcrypt          |
-| role     | admin \| vendedor  | por defecto `vendedor`                      |
+| Contraseña | string (hash)      | obligatorio, encriptado con bcrypt          |
+| rol     | admin \| vendedor  | por defecto `vendedor`                      |
 
 ### Producto (`products`)
 | Campo            | Tipo    | Notas                                                       |
 |-------------------|---------|----------------------------------------------------------------|
-| sku               | string  | obligatorio, único (código interno del producto)                |
-| name              | string  | obligatorio                                                      |
-| description       | text    | opcional                                                          |
-| brand             | string  | obligatorio (marca: Maybelline, L'Oréal, Nivea, etc.)            |
-| category          | string  | maquillaje, cuidado_facial, cuidado_capilar, cuidado_corporal, perfumeria, unas, accesorios, otro |
-| price             | float   | obligatorio, precio de venta                                     |
-| cost              | float   | opcional, costo de adquisición (para calcular margen)            |
+| Código               | string  | obligatorio, único (código interno del producto)                |
+| nombre              | string  | obligatorio                                                      |
+| descripcion       | text    | opcional                                                          |
+| marca             | string  | obligatorio (marca: Maybelline, L'Oréal, Nivea, etc.)            |
+| categoria         | string  | maquillaje, cuidado_facial, cuidado_capilar, cuidado_corporal, perfumeria, unas, accesorios, otro |
+| precio           | float   | obligatorio, precio de venta                                     |
+| costo              | float   | opcional, costo de adquisición (para calcular margen)            |
 | stock             | integer | cantidad disponible, por defecto 0                                |
 | min_stock         | integer | umbral de bajo stock, por defecto 5                               |
-| expiration_date   | date    | opcional, formato `YYYY-MM-DD`                                    |
-| is_active         | boolean | baja lógica del producto, por defecto true                       |
-| is_low_stock      | boolean | calculado automáticamente (stock <= min_stock), solo en respuestas|
+| fecha de vencimiento   | date    | opcional, formato `YYYY-MM-DD`                                    |
+| esta activo         | boolean | baja lógica del producto, por defecto true                       |
+| tiene baja existencia     | boolean | calculado automáticamente (stock <= min_stock), solo en respuestas|
 
 ## Ejecución con Docker
 
 ```bash
 docker build -t inventario-tienda-belleza .
-docker run -p 5000:5000 inventario-tienda-belleza
+docker run -p 8000:8000 inventario-tienda-belleza
 ```
 
-La API queda disponible en `http://localhost:5000`. La base de datos SQLite
+La API queda disponible en `http://localhost:8000`. La base de datos SQLite
 (`database.db`) se crea automáticamente dentro del contenedor al iniciar.
 
 > Nota: al ser SQLite dentro del contenedor, los datos se pierden si el contenedor
 > se elimina. Para persistirlos, monta un volumen:
-> `docker run -p 5000:5000 -v $(pwd)/data:/app/data -e DATABASE_URL=sqlite:////app/data/database.db inventario-tienda-belleza`
+> `docker run -p 8000:8000 -v $(pwd)/data:/app/data -e DATABASE_URL=sqlite:////app/data/database.db inventario-tienda-belleza`
 
 ### Variables de entorno opcionales
 | Variable                        | Descripción                                 | Valor por defecto        |
@@ -121,7 +121,7 @@ Se pueden combinar, ej: `GET /api/products?category=cuidado_facial&lowStock=true
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Carolina Gomez","email":"carolina@tiendabelleza.com","password":"123456","role":"admin"}'
+  -d '{"nombre":"Carolina Gomez","email":"carolina@tiendabelleza.com","contraseña":"123456","rol":"admin"}'
 ```
 
 2. Iniciar sesión (copia el `token` de la respuesta):
