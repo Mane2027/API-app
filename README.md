@@ -1,4 +1,4 @@
-# API REST — Sistema de Inventario Tienda de Belleza (Python + Flask + Docker)
+# API REST — Sistema de Inventario Tienda de Belleza (Python  + Docker)
 
 Backend en **Python** (Flask), construido con **programación orientada a objetos**
 (clases `User`, `Product`, `AuthService`, `UserService`, `ProductService`), que expone
