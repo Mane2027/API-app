@@ -54,8 +54,8 @@ Flujo de cada petición: `ruta -> service -> modelo (SQLAlchemy) -> base de dato
 ## Ejecución con Docker
 
 ```bash
-docker build -t inventario-tienda-belleza .
-docker run -p 8000:8000 inventario-tienda-belleza
+docker build -t fastapi_inventario:v1.0 .
+docker run --name fastapi3 -p 8000:8000 fastapi_inventario:v1.0
 ```
 
 La API queda disponible en `http://localhost:8000`. La base de datos SQLite
