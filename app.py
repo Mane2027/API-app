@@ -76,6 +76,72 @@ class ProductSchema(BaseModel):
     is_active: bool = True
 
 # ---------------------------------------------------------------------------
+# Bases de datos simulada 
+# 
+
+    id = 1
+    sku = 
+    name = Shampoo Alma de Romero con Aguacate
+    description = 
+    brand = Alma de Romero
+    category = Cuidado Capilar
+    price = 24000
+    cost = 18000
+    stock = 42
+    min_stock = 5
+    expiration_date = 01/2/2030
+    is_active = 
+    created_at = 24/09/2026
+    updated_at = 27/09/2026
+
+
+    id = 2
+    sku = 
+    name = Acondicionador Alma de Romero con Aguacate
+    description = 
+    brand = Alma de Romero
+    category = Cuidado Capilar
+    price = 24000
+    cost = 18000
+    stock = 46
+    min_stock = 5
+    expiration_date = 01/2/2030
+    is_active = 
+    created_at = 24/09/2026
+    updated_at = 27/09/2026
+
+    id = 3
+    sku = 
+    name = Tratamiento Alma de Romero con Argan
+    description = 
+    brand = Alma de Romero
+    category = Cuidado Capilar
+    price = 24000
+    cost = 18000
+    stock = 42
+    min_stock = 5
+    expiration_date = 03/2/2030
+    is_active = 
+    created_at = 24/09/2026
+    updated_at = 27/09/2026
+
+    id = 4
+    sku = 
+    name = Protector solar nude con color 50FPS
+    description = 
+    brand = NUDE
+    category = Cuidado Facial
+    price = 49000
+    cost = 55000
+    stock = 50
+    min_stock = 5
+    expiration_date = 01/2/2028
+    is_active = 
+    created_at = 24/09/2026
+    updated_at = 27/09/2026
+
+
+# ---------------------------------------------------------------------------
 # Dependencia de DB
 # ---------------------------------------------------------------------------
 def get_db():
