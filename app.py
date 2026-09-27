@@ -75,70 +75,6 @@ class ProductSchema(BaseModel):
     expiration_date: str | None = None
     is_active: bool = True
 
-# ---------------------------------------------------------------------------
-# Bases de datos simulada 
-# 
-
-    id = 1
-    sku = 
-    name = Shampoo Alma de Romero con Aguacate
-    description = 
-    brand = Alma de Romero
-    category = Cuidado Capilar
-    price = 24000
-    cost = 18000
-    stock = 42
-    min_stock = 5
-    expiration_date = 01/2/2030
-    is_active = 
-    created_at = 24/09/2026
-    updated_at = 27/09/2026
-
-
-    id = 2
-    sku = 
-    name = Acondicionador Alma de Romero con Aguacate
-    description = 
-    brand = Alma de Romero
-    category = Cuidado Capilar
-    price = 24000
-    cost = 18000
-    stock = 46
-    min_stock = 5
-    expiration_date = 01/2/2030
-    is_active = 
-    created_at = 24/09/2026
-    updated_at = 27/09/2026
-
-    id = 3
-    sku = 
-    name = Tratamiento Alma de Romero con Argan
-    description = 
-    brand = Alma de Romero
-    category = Cuidado Capilar
-    price = 24000
-    cost = 18000
-    stock = 42
-    min_stock = 5
-    expiration_date = 03/2/2030
-    is_active = 
-    created_at = 24/09/2026
-    updated_at = 27/09/2026
-
-    id = 4
-    sku = 
-    name = Protector solar nude con color 50FPS
-    description = 
-    brand = NUDE
-    category = Cuidado Facial
-    price = 49000
-    cost = 55000
-    stock = 50
-    min_stock = 5
-    expiration_date = 01/2/2028
-    is_active = 
-    created_at = 24/09/2026
-    updated_at = 27/09/2026
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +146,54 @@ def update_product(product_id: int, data: ProductSchema, db=Depends(get_db)):
     db.commit()
     db.refresh(product)
     return product
+
+{
+
+  "id": 1,
+  "name": "Crema Facial Colágeno 50g",
+  "description": "Crema hidratante con colágeno para piel seca y mixta.",
+  "brand": "Divina Essence",
+  "category": "Skincare",
+  "price": 32000,
+  "cost": 18000,
+  "stock": 25,
+  "min_stock": 5,
+  "expiration_date": "2026-12-15",
+  "sku": "DIV-CC-50G-4821",
+  "is_active": true,
+  "created_at": "2026-09-27T14:22:10",
+  "updated_at": "2026-09-27T14:22:10"
+
+ "id": 2,
+  "name": "Protector Solar Facial SPF50",
+  "description": "Protector solar facial de amplio espectro, textura ligera y acabado mate.",
+  "brand": "Divina Essence",
+  "category": "Skincare",
+  "price": 45000,
+  "cost": 25000,
+  "stock": 40,
+  "min_stock": 8,
+  "expiration_date": "2027-03-10",
+  "sku": "DIV-PS-SPF50-2027",
+"is_active": true,
+  "created_at": "2026-09-27T14:22:10",
+  "updated_at": "2026-09-27T14:22:10",
+
+  "id": 3,
+  "name": "Shampoo Nutritivo con Argan 300ml",
+  "description": "Shampoo nutritivo con aceite de argán, ideal para cabello seco y maltratado.",
+  "brand": "Nutrit",
+  "category": "Capilar",
+  "price": 28000,
+  "cost": 15000,
+  "stock": 60,
+  "min_stock": 10,
+  "expiration_date": "2027-08-20",
+  "sku": "DIV-SH-ARGAN300-2027"
+   "is_active": true,
+  "created_at": "2026-09-27T14:22:10",
+  "updated_at": "2026-09-27T14:22:10",
+}
 
 @app.delete("/api/products/{product_id}")
 def delete_product(product_id: int, db=Depends(get_db)):
