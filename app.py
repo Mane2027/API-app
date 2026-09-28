@@ -150,8 +150,8 @@ def update_product(product_id: int, data: ProductSchema, db=Depends(get_db)):
     if data.expiration_date:
         data.expiration_date = datetime.strptime(data.expiration_date, "%Y-%m-%d").date()
 
-    # Actualizar campos
-    for key, value in data.dict().items():
+    # Actualizar solo los campos enviados (evita sobrescribir con None)
+    for key, value in data.dict(exclude_unset=True).items():
         setattr(product, key, value)
 
     db.commit()
