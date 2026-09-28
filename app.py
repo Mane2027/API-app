@@ -141,16 +141,13 @@ def get_product(product_id: int, db=Depends(get_db)):
 
 @app.put("/productos/{product_id}")
 def update_product(product_id: int, data: ProductSchema, db=Depends(get_db)):
-    # Buscar producto
     product = db.query(Product).get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    # Convertir fecha si viene en el JSON
     if data.expiration_date:
         data.expiration_date = datetime.strptime(data.expiration_date, "%Y-%m-%d").date()
 
-    # Actualizar solo los campos enviados (evita sobrescribir con None)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(product, key, value)
 
