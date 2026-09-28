@@ -11,8 +11,7 @@ import os
 # ---------------------------------------------------------------------------
 # Configuración de la aplicación FastAPI
 # ---------------------------------------------------------------------------
-app = FastAPI()
-    title="API de tienda de belleza",
+app = FastAPI(title="API de tienda de belleza",
     description="Documentación de la API para la gestión de productos.",
     version="1.0.0"
 )
@@ -29,7 +28,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Configuración de la base de datos
 # ---------------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////app/data/database.db")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -111,35 +110,47 @@ def index():
 
 # ---------------------- Productos ----------------------
 
-@app.get("/api/products")
+@app.get("/productos")
 def get_products(db=Depends(get_db)):
     products = db.query(Product).all()
     return products
 
-@app.post("/api/products")
+@app.post("/productos")
 def create_product(data: ProductSchema, db=Depends(get_db)):
+    # Validar SKU duplicado
     if db.query(Product).filter_by(sku=data.sku).first():
         raise HTTPException(status_code=409, detail="SKU ya registrado")
 
+    # Convertir fecha de string a date
+    if data.expiration_date:
+        data.expiration_date = datetime.strptime(data.expiration_date, "%Y-%m-%d").date()
+
+    # Crear producto
     product = Product(**data.dict())
     db.add(product)
     db.commit()
     db.refresh(product)
     return product
 
-@app.get("/api/products/{product_id}")
+@app.get("/productos/{product_id}")
 def get_product(product_id: int, db=Depends(get_db)):
     product = db.query(Product).get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return product
 
-@app.put("/api/products/{product_id}")
+@app.put("/productos/{product_id}")
 def update_product(product_id: int, data: ProductSchema, db=Depends(get_db)):
+    # Buscar producto
     product = db.query(Product).get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
+    # Convertir fecha si viene en el JSON
+    if data.expiration_date:
+        data.expiration_date = datetime.strptime(data.expiration_date, "%Y-%m-%d").date()
+
+    # Actualizar campos
     for key, value in data.dict().items():
         setattr(product, key, value)
 
@@ -147,55 +158,9 @@ def update_product(product_id: int, data: ProductSchema, db=Depends(get_db)):
     db.refresh(product)
     return product
 
-{
 
-  "id": 1,
-  "name": "Crema Facial Colágeno 50g",
-  "description": "Crema hidratante con colágeno para piel seca y mixta.",
-  "brand": "Divina Essence",
-  "category": "Skincare",
-  "price": 32000,
-  "cost": 18000,
-  "stock": 25,
-  "min_stock": 5,
-  "expiration_date": "2026-12-15",
-  "sku": "DIV-CC-50G-4821",
-  "is_active": true,
-  "created_at": "2026-09-27T14:22:10",
-  "updated_at": "2026-09-27T14:22:10"
 
- "id": 2,
-  "name": "Protector Solar Facial SPF50",
-  "description": "Protector solar facial de amplio espectro, textura ligera y acabado mate.",
-  "brand": "Divina Essence",
-  "category": "Skincare",
-  "price": 45000,
-  "cost": 25000,
-  "stock": 40,
-  "min_stock": 8,
-  "expiration_date": "2027-03-10",
-  "sku": "DIV-PS-SPF50-2027",
-"is_active": true,
-  "created_at": "2026-09-27T14:22:10",
-  "updated_at": "2026-09-27T14:22:10",
-
-  "id": 3,
-  "name": "Shampoo Nutritivo con Argan 300ml",
-  "description": "Shampoo nutritivo con aceite de argán, ideal para cabello seco y maltratado.",
-  "brand": "Nutrit",
-  "category": "Capilar",
-  "price": 28000,
-  "cost": 15000,
-  "stock": 60,
-  "min_stock": 10,
-  "expiration_date": "2027-08-20",
-  "sku": "DIV-SH-ARGAN300-2027"
-   "is_active": true,
-  "created_at": "2026-09-27T14:22:10",
-  "updated_at": "2026-09-27T14:22:10",
-}
-
-@app.delete("/api/products/{product_id}")
+@app.delete("/productos/{product_id}")
 def delete_product(product_id: int, db=Depends(get_db)):
     product = db.query(Product).get(product_id)
     if not product:
@@ -204,4 +169,3 @@ def delete_product(product_id: int, db=Depends(get_db)):
     db.delete(product)
     db.commit()
     return {"message": "Producto eliminado correctamente"}
-
