@@ -70,3 +70,14 @@ class StockAlert(Base):
     message = Column(String(200))
     level = Column(String(20))  # bajo / crítico / agotado
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Provider(Base):
+    __tablename__ = "providers"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    contact_name = Column(String(100))
+    phone = Column(String(50))
+    email = Column(String(100))
+    address = Column(String(200))
+    created_at = Column(DateTime, default=datetime.utcnow)
