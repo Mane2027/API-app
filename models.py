@@ -37,3 +37,14 @@ class AuditLog(Base):
     action = Column(String(50), nullable=False)
     details = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class ProductHistory(Base):
+    __tablename__ = "product_history"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, nullable=False)
+    field = Column(String(50), nullable=False)
+    old_value = Column(String(200))
+    new_value = Column(String(200))
+    changed_by = Column(String(50))
+    timestamp = Column(DateTime, default=datetime.utcnow)
