@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from Rutas import productos, usuarios
+from Rutas import reportes
+
+app.include_router(reportes.router)
 
 app = FastAPI(
     title="API de tienda de belleza",
