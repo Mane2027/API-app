@@ -28,3 +28,12 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(200), nullable=False)
     role = Column(String(20), default="user")  # user / admin
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(50), nullable=False)
+    action = Column(String(50), nullable=False)
+    details = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)
