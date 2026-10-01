@@ -61,3 +61,12 @@ class InventoryMovement(Base):
     new_stock = Column(Integer, nullable=False)
     performed_by = Column(String(50))
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class StockAlert(Base):
+    __tablename__ = "stock_alerts"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, nullable=False)
+    message = Column(String(200))
+    level = Column(String(20))  # bajo / crítico / agotado
+    timestamp = Column(DateTime, default=datetime.utcnow)
