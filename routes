@@ -1,0 +1,14 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.dependencies import get_db
+from app.models import Producto
+
+router = APIRouter(prefix="/productos")
+
+@router.post("/")
+def crear_producto(data: dict, db: Session = Depends(get_db)):
+    producto = Producto(**data)
+    db.add(producto)
+    db.commit()
+    db.refresh(producto)
+    return producto
