@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, Text, DateTime
-from datetime import datetime
 from app.database import Base
+from datetime import datetime
+created_at = Column(DateTime, default=datetime.utcnow)
 
 class Product(Base):
     __tablename__ = "products"
