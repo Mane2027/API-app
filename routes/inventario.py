@@ -6,6 +6,7 @@ from app.dependencies import get_db
 from app.models import Product, InventoryMovement
 from Rutas.auth import verificar_token, require_role
 from Rutas.logs import registrar_log
+from Rutas.alertas import generar_alerta
 
 router = APIRouter(prefix="/inventario", tags=["Inventario"])
 
@@ -25,6 +26,7 @@ def entrada_inventario(product_id: int, cantidad: int, db: Session = Depends(get
     nuevo = anterior + cantidad
 
     producto.stock = nuevo
+    generar_alerta(db, producto)
 
     movimiento = InventoryMovement(
         product_id=product_id,
@@ -66,6 +68,7 @@ def salida_inventario(product_id: int, cantidad: int, db: Session = Depends(get_
     nuevo = anterior - cantidad
 
     producto.stock = nuevo
+    generar_alerta(db, producto)
 
     movimiento = InventoryMovement(
         product_id=product_id,
