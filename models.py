@@ -49,3 +49,15 @@ class ProductHistory(Base):
     new_value = Column(String(200))
     changed_by = Column(String(50))
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class InventoryMovement(Base):
+    __tablename__ = "inventory_movements"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, nullable=False)
+    movement_type = Column(String(20))  # entrada / salida
+    quantity = Column(Integer, nullable=False)
+    previous_stock = Column(Integer, nullable=False)
+    new_stock = Column(Integer, nullable=False)
+    performed_by = Column(String(50))
+    timestamp = Column(DateTime, default=datetime.utcnow)
