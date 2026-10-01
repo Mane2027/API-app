@@ -1,14 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.dependencies import get_db
-from app.models import Product
 from pydantic import BaseModel
+
+from app.dependencies import get_db
+from app.models import Product, ProductHistory
 from Rutas.auth import verificar_token, require_role
 from Rutas.logs import registrar_log
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
+# -----------------------------
+# Esquema Pydantic
+# -----------------------------
 class ProductSchema(BaseModel):
     sku: str
     name: str
@@ -49,7 +53,6 @@ def create_product(data: ProductSchema, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(product)
 
-    # LOG DE AUDITORÍA
     registrar_log(db, payload["sub"], "crear_producto", f"SKU: {data.sku}")
 
     return product
@@ -76,13 +79,26 @@ def update_product(product_id: int, data: ProductSchema, db: Session = Depends(g
     if data.expiration_date:
         data.expiration_date = datetime.strptime(data.expiration_date, "%Y-%m-%d").date()
 
+    # Historial de cambios
     for key, value in data.dict(exclude_unset=True).items():
-        setattr(product, key, value)
+        old_value = getattr(product, key)
+        new_value = value
+
+        if old_value != new_value:
+            history = ProductHistory(
+                product_id=product_id,
+                field=key,
+                old_value=str(old_value),
+                new_value=str(new_value),
+                changed_by=payload["sub"]
+            )
+            db.add(history)
+
+        setattr(product, key, new_value)
 
     db.commit()
     db.refresh(product)
 
-    # LOG DE AUDITORÍA
     registrar_log(db, payload["sub"], "actualizar_producto", f"ID: {product_id}")
 
     return product
@@ -100,7 +116,61 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(product)
     db.commit()
 
-    # LOG DE AUDITORÍA
     registrar_log(db, payload["sub"], "eliminar_producto", f"ID: {product_id}")
 
     return {"message": "Producto eliminado correctamente"}
+
+
+# -----------------------------
+# Filtros avanzados
+# -----------------------------
+@router.get("/filtrar", dependencies=[Depends(verificar_token)])
+def filtrar_productos(
+    categoria: str | None = None,
+    marca: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    activos: bool | None = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Product)
+
+    if categoria:
+        query = query.filter(Product.category == categoria)
+
+    if marca:
+        query = query.filter(Product.brand == marca)
+
+    if min_price:
+        query = query.filter(Product.price >= min_price)
+
+    if max_price:
+        query = query.filter(Product.price <= max_price)
+
+    if activos is not None:
+        query = query.filter(Product.is_active == activos)
+
+    return query.all()
+
+
+# -----------------------------
+# Paginación
+# -----------------------------
+@router.get("/paginacion", dependencies=[Depends(verificar_token)])
+def paginar_productos(
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    offset = (page - 1) * limit
+    productos = db.query(Product).offset(offset).limit(limit).all()
+
+    total = db.query(Product).count()
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "total_pages": (total + limit - 1) // limit,
+        "data": productos
+    }
