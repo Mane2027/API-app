@@ -4,6 +4,7 @@ from datetime import datetime
 from app.dependencies import get_db
 from app.models import Product
 from pydantic import BaseModel
+from Rutas.auth import verificar_token
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
@@ -21,12 +22,12 @@ class ProductSchema(BaseModel):
     is_active: bool = True
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verificar_token)])
 def get_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verificar_token)])
 def create_product(data: ProductSchema, db: Session = Depends(get_db)):
     if db.query(Product).filter_by(sku=data.sku).first():
         raise HTTPException(status_code=409, detail="SKU ya registrado")
@@ -41,7 +42,7 @@ def create_product(data: ProductSchema, db: Session = Depends(get_db)):
     return product
 
 
-@router.get("/{product_id}")
+@router.get("/{product_id}", dependencies=[Depends(verificar_token)])
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).get(product_id)
     if not product:
@@ -49,7 +50,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return product
 
 
-@router.put("/{product_id}")
+@router.put("/{product_id}", dependencies=[Depends(verificar_token)])
 def update_product(product_id: int, data: ProductSchema, db: Session = Depends(get_db)):
     product = db.query(Product).get(product_id)
     if not product:
@@ -66,7 +67,7 @@ def update_product(product_id: int, data: ProductSchema, db: Session = Depends(g
     return product
 
 
-@router.delete("/{product_id}")
+@router.delete("/{product_id}", dependencies=[Depends(verificar_token)])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).get(product_id)
     if not product:
