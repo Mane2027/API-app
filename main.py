@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.routes import productos
+from Rutas import productos, usuarios
 
 app = FastAPI(
     title="API de tienda de belleza",
-    description="Documentación de la API para la gestión de productos.",
+    description="Documentación de la API para la gestión de productos y usuarios.",
     version="1.0.0"
 )
 
@@ -20,6 +20,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(productos.router)
+app.include_router(usuarios.router)
 
 @app.get("/")
 def index():
