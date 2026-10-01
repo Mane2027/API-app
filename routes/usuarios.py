@@ -22,6 +22,7 @@ class UserRegister(BaseModel):
     username: str
     email: str
     password: str
+    role: str = "user"   # por defecto usuario normal
 
 class UserLogin(BaseModel):
     username: str
@@ -54,7 +55,13 @@ def register_user(data: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Email ya registrado")
 
     hashed = hash_password(data.password)
-    user = User(username=data.username, email=data.email, password=hashed)
+
+    user = User(
+        username=data.username,
+        email=data.email,
+        password=hashed,
+        role=data.role   # ← AQUÍ VA
+    )
 
     db.add(user)
     db.commit()
@@ -70,6 +77,9 @@ def login_user(data: UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
-    token = create_token({"sub": user.username})
+    token = create_token({
+        "sub": user.username,
+        "role": user.role   # ← IMPORTANTE
+    })
 
     return {"access_token": token, "token_type": "bearer"}
