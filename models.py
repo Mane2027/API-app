@@ -81,3 +81,23 @@ class Provider(Base):
     email = Column(String(100))
     address = Column(String(200))
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id = Column(Integer, primary_key=True)
+    date = Column(DateTime, default=datetime.utcnow)
+    total = Column(Float, nullable=False)
+    user = Column(String(50))  # usuario que realizó la venta
+
+
+class SaleDetail(Base):
+    __tablename__ = "sale_details"
+
+    id = Column(Integer, primary_key=True)
+    sale_id = Column(Integer, ForeignKey("sales.id"))
+    product_id = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+
+    sale = relationship("Sale", backref="details")
