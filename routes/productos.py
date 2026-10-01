@@ -5,6 +5,7 @@ from app.dependencies import get_db
 from app.models import Product
 from pydantic import BaseModel
 from Rutas.auth import verificar_token, require_role
+from Rutas.logs import registrar_log
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
@@ -35,6 +36,8 @@ def get_products(db: Session = Depends(get_db)):
 # 🔴 Solo ADMIN puede crear productos
 @router.post("/", dependencies=[Depends(require_role("admin"))])
 def create_product(data: ProductSchema, db: Session = Depends(get_db)):
+    payload = verificar_token()
+
     if db.query(Product).filter_by(sku=data.sku).first():
         raise HTTPException(status_code=409, detail="SKU ya registrado")
 
@@ -45,6 +48,10 @@ def create_product(data: ProductSchema, db: Session = Depends(get_db)):
     db.add(product)
     db.commit()
     db.refresh(product)
+
+    # LOG DE AUDITORÍA
+    registrar_log(db, payload["sub"], "crear_producto", f"SKU: {data.sku}")
+
     return product
 
 
@@ -60,6 +67,8 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 # 🔴 Solo ADMIN puede actualizar productos
 @router.put("/{product_id}", dependencies=[Depends(require_role("admin"))])
 def update_product(product_id: int, data: ProductSchema, db: Session = Depends(get_db)):
+    payload = verificar_token()
+
     product = db.query(Product).get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -72,16 +81,26 @@ def update_product(product_id: int, data: ProductSchema, db: Session = Depends(g
 
     db.commit()
     db.refresh(product)
+
+    # LOG DE AUDITORÍA
+    registrar_log(db, payload["sub"], "actualizar_producto", f"ID: {product_id}")
+
     return product
 
 
 # 🔴 Solo ADMIN puede eliminar productos
 @router.delete("/{product_id}", dependencies=[Depends(require_role("admin"))])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
+    payload = verificar_token()
+
     product = db.query(Product).get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
     db.delete(product)
     db.commit()
+
+    # LOG DE AUDITORÍA
+    registrar_log(db, payload["sub"], "eliminar_producto", f"ID: {product_id}")
+
     return {"message": "Producto eliminado correctamente"}
