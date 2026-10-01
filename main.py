@@ -5,6 +5,9 @@ from Rutas import productos, usuarios
 from Rutas import reportes
 from Rutas import inventario
 from Rutas import alertas
+from Rutas import proveedores
+
+app.include_router(proveedores.router)
 
 app.include_router(alertas.router)
 
