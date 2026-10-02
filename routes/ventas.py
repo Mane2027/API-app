@@ -7,6 +7,9 @@ from app.models import Product, Sale, SaleDetail, InventoryMovement
 from Rutas.auth import verificar_token, require_role
 from Rutas.logs import registrar_log
 from Rutas.alertas import generar_alerta
+from Rutas import ventas
+
+app.include_router(ventas.router)
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
 
