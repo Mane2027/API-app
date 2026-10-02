@@ -102,3 +102,38 @@ def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
         "venta": venta,
         "detalles": venta.details
     }
+
+
+# ---------------------------------------------------------
+# 📌 TOP PRODUCTOS MÁS VENDIDOS
+# ---------------------------------------------------------
+@router.get("/top", dependencies=[Depends(require_role("admin"))])
+def top_productos_vendidos(db: Session = Depends(get_db)):
+    resultados = (
+        db.query(
+            Product.id,
+            Product.name,
+            func.sum(SaleDetail.quantity).label("cantidad_vendida"),
+            func.sum(SaleDetail.quantity * SaleDetail.price).label("total_generado")
+        )
+        .join(SaleDetail, SaleDetail.product_id == Product.id)
+        .group_by(Product.id, Product.name)
+        .order_by(func.sum(SaleDetail.quantity).desc())
+        .limit(10)
+        .all()
+    )
+
+    top = [
+        {
+            "product_id": r.id,
+            "nombre": r.name,
+            "cantidad_vendida": r.cantidad_vendida,
+            "total_generado": r.total_generado
+        }
+        for r in resultados
+    ]
+
+    return {
+        "top_productos": top,
+        "total_items": len(top)
+    }
