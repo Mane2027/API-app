@@ -101,3 +101,26 @@ class SaleDetail(Base):
     price = Column(Float, nullable=False)
 
     sale = relationship("Sale", backref="details")
+
+class Purchase(Base):
+    __tablename__ = "purchases"
+
+    id = Column(Integer, primary_key=True)
+    date = Column(DateTime, default=datetime.utcnow)
+    total = Column(Float, nullable=False)
+    provider_id = Column(Integer, ForeignKey("providers.id"))
+    user = Column(String(50))
+
+    provider = relationship("Provider", backref="purchases")
+
+
+class PurchaseDetail(Base):
+    __tablename__ = "purchase_details"
+
+    id = Column(Integer, primary_key=True)
+    purchase_id = Column(Integer, ForeignKey("purchases.id"))
+    product_id = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+
+    purchase = relationship("Purchase", backref="details")
