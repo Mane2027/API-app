@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import Base, engine
+from main.database import Base, engine
 from Rutas import productos, usuarios
 from Rutas import reportes
 from Rutas import inventario
