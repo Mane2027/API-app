@@ -3,19 +3,19 @@ Backend desarrollado en Python (FastAPI) para gestionar el inventario de la tien
 El sistema está modularizado mediante routers, utiliza SQLAlchemy como ORM y se ejecuta dentro de un contenedor Docker.
 
 Tecnologías utilizadas
-FastAPI — Framework moderno y rápido para APIs REST
+*FastAPI — Framework moderno y rápido para APIs REST
 
-Uvicorn — Servidor ASGI
+*Uvicorn — Servidor ASGI
 
-SQLAlchemy — ORM para la base de datos
+*SQLAlchemy — ORM para la base de datos
 
-SQLite — Base de datos embebida
+*SQLite — Base de datos embebida
 
-Pydantic — Validación de datos
+*Pydantic — Validación de datos
 
-Docker — Contenerización del backend
+*Docker — Contenerización del backend
 
-JWT — Autenticación (si tu módulo auth.py lo implementa)
+*JWT — Autenticación 
 
 📦 Estructura del proyecto
 Código
@@ -42,78 +42,53 @@ Código
 │
 └── utils/
     └── email_sender.py
-    
+ 
 🧩 Descripción de módulos
-main.py
+*main.py
 Punto de entrada de la aplicación.
 Incluye:
 
-instancia de FastAPI
+-instancia de FastAPI
+-inclusión de routers
+-configuración inicial
 
-inclusión de routers
-
-configuración inicial
-
-database.py
+*database.py
 Configuración de SQLAlchemy:
+-motor
+-sesión
+-creación de tablas
 
-motor
-
-sesión
-
-creación de tablas
-
-models.py
+*models.py
 Modelos ORM que representan las tablas del sistema:
+-productos
+-usuarios
+-proveedores
+-ventas
+-compras
 
-productos
-
-usuarios
-
-proveedores
-
-ventas
-
-compras
-
-etc.
-
-dependencies.py
+*dependencies.py
 Dependencias reutilizables:
-
-sesión de base de datos
-
-autenticación (si aplica)
-
-routes/
+-sesión de base de datos
+-autenticación (si aplica)
+*routes/
 Carpeta con todos los módulos de rutas organizados por funcionalidad:
 
-productos
+-productos
+-ventas
+-compras
+-usuarios
+-reportes
+-proveedores
+-dashboard
+-alertas
+-logs
 
-ventas
-
-compras
-
-usuarios
-
-reportes
-
-proveedores
-
-dashboard
-
-alertas
-
-logs
-
-utils/
+*utils/
 Funciones auxiliares:
+-envío de correos
+-utilidades generales
 
-envío de correos
-
-utilidades generales
-
-Docker
+*Docker
 Construir la imagen
 bash
 docker build -t fastapi_inventario:v1.0 .
@@ -124,36 +99,23 @@ docker run -p 8000:8000 \
   -e DATABASE_URL=sqlite:///app/data/database.db \
   fastapi_inventario:v1.0
 La API queda disponible en:
-
 Código
 http://localhost:8000
 📡 Endpoints principales
 Cada módulo dentro de routes/ expone sus propios endpoints:
-
 /productos
-
 /ventas
-
 /compras
-
 /usuarios
-
 /reportes
-
 /proveedores
-
 /inventario
-
 /dashboard
-
 /alertas
-
 /logs
-
 /auth (si usas JWT)
 
 La documentación automática está disponible en:
-
 Código
 /docs
 /redoc
@@ -164,10 +126,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 
 Seguridad implementada
-Contraseñas encriptadas (si tu módulo auth.py lo implementa)
-
-Autenticación mediante JWT
-
-Validación de datos con Pydantic
-
-Manejo de errores centralizado por FastAPI
+-Contraseñas encriptadas 
+-Autenticación mediante JWT
+-Validación de datos con Pydantic
+-Manejo de errores centralizado por FastAPI
