@@ -20,27 +20,27 @@ Tecnologías utilizadas
 📦 Estructura del proyecto
 Código
 .
-├── main.py
-├── database.py
-├── models.py
-├── dependencies.py
-├── requirements.txt
-├── Dockerfile
-│
-├── routes/
-│   ├── alertas.py
-│   ├── auth.py
-│   ├── compras.py
-│   ├── dashboard.py
-│   ├── inventario.py
-│   ├── logs.py
-│   ├── productos.py
-│   ├── proveedores.py
-│   ├── reportes.py
-│   ├── usuarios.py
-│   └── ventas.py
-│
-└── utils/
+── main.py
+── database.py
+── models.py
+── dependencies.py
+── requirements.txt
+── Dockerfile
+
+── routes/
+  ── alertas.py
+   ── auth.py
+   ── compras.py
+  ── dashboard.py
+   ── inventario.py
+   ── logs.py
+   ── productos.py
+   ── proveedores.py
+   ── reportes.py
+   ── usuarios.py
+   ── ventas.py
+
+── utils/
     └── email_sender.py
  
 🧩 Descripción de módulos
