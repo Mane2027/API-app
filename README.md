@@ -101,19 +101,91 @@ docker run -p 8000:8000 \
 La API queda disponible en:
 Código
 http://localhost:8000
+
 📡 Endpoints principales
-Cada módulo dentro de routes/ expone sus propios endpoints:
-/productos
-/ventas
-/compras
-/usuarios
-/reportes
-/proveedores
-/inventario
-/dashboard
-/alertas
-/logs
-/auth (si usas JWT)
+
+ Autenticación (routes/auth.py)
+Método	Ruta	Descripción
+POST	/auth/login	Iniciar sesión y obtener token JWT
+POST	/auth/register	Registrar usuario (si lo tienes)
+
+
+👤 Usuarios (routes/usuarios.py)
+Método	Ruta	Descripción
+GET	/usuarios	Listar usuarios
+GET	/usuarios/{id}	Obtener usuario por ID
+POST	/usuarios	Crear usuario
+PUT	/usuarios/{id}	Actualizar usuario
+DELETE	/usuarios/{id}	Eliminar usuario
+
+
+📦 Productos (routes/productos.py)
+Método	Ruta	Descripción
+GET	/productos	Listar productos (admite filtros)
+GET	/productos/{id}	Obtener producto por ID
+POST	/productos	Crear producto
+PUT	/productos/{id}	Actualizar producto
+DELETE	/productos/{id}	Eliminar producto
+
+
+Filtros disponibles en GET /productos:
+
+?category=maquillaje
+
+?brand=Nivea
+
+?lowStock=true
+
+?search=labial
+
+🛒 Ventas (routes/ventas.py)
+Método	Ruta	Descripción
+GET	/ventas	Listar ventas
+POST	/ventas	Registrar venta
+GET	/ventas/{id}	Obtener venta por ID
+
+
+🧾 Compras (routes/compras.py)
+Método	Ruta	Descripción
+GET	/compras	Listar compras
+POST	/compras	Registrar compra
+GET	/compras/{id}	Obtener compra por ID
+
+
+🧪 Inventario (routes/inventario.py)
+Método	Ruta	Descripción
+GET	/inventario/resumen	Resumen general del inventario
+GET	/inventario/bajo	Productos con bajo stock
+
+
+📊 Dashboard (routes/dashboard.py)
+Método	Ruta	Descripción
+GET	/dashboard	Métricas generales del sistema
+
+
+🚨 Alertas (routes/alertas.py)
+Método	Ruta	Descripción
+GET	/alertas	Alertas del sistema
+
+
+📝 Reportes (routes/reportes.py)
+Método	Ruta	Descripción
+GET	/reportes/ventas	Reporte de ventas
+GET	/reportes/productos	Reporte de productos
+
+
+🏭 Proveedores (routes/proveedores.py)
+Método	Ruta	Descripción
+GET	/proveedores	Listar proveedores
+POST	/proveedores	Crear proveedor
+GET	/proveedores/{id}	Obtener proveedor
+
+
+📚 Logs (routes/logs.py)
+Método	Ruta	Descripción
+GET	/logs	Ver logs del sistema
+
+
 
 La documentación automática está disponible en:
 Código
