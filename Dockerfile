@@ -1,9 +1,17 @@
-FROM python:3.11-slim
+# Imagen base
+FROM python:3.10
 
+# Crear carpeta de trabajo dentro del contenedor
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install fastapi uvicorn sqlalchemy python-jose[cryptography]
-COPY main.py .
+# Copiar todo el proyecto al contenedor
+COPY . .
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Instalar dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Exponer el puerto
+EXPOSE 8000
+
+# Comando para ejecutar FastAPI con Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
