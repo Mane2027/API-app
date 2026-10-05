@@ -2,4 +2,9 @@ fastapi
 uvicorn
 sqlalchemy
 python-jose[cryptography]
+python-multipart
+pydantic
+email-validator
+bcrypt
+passlib[bcrypt]
 reportlab
