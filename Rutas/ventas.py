@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
-from app.dependencies import get_db
-from app.models import (
+from dependencies import get_db
+from models import (
     Provider, Product,
     Purchase, PurchaseDetail,
     Sale, SaleDetail
