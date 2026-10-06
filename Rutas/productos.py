@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
 
-from app.dependencies import get_db
-from app.models import Product, ProductHistory
+from dependencies import get_db
+from models import Product, ProductHistory
 from Rutas.auth import verificar_token, require_role
 from Rutas.logs import registrar_log
 
