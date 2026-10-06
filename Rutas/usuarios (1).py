@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from app.dependencies import get_db
-from app.models import User
+from dependencies import get_db
+from models import User
 from jose import jwt
 from passlib.context import CryptContext
 import os
