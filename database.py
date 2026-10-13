@@ -1,13 +1,20 @@
+import os
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./database.db"
+# En Docker se define DATABASE_URL (ruta absoluta = 4 barras: sqlite:////app/data/database.db).
+# Sin la variable, usa ./data/database.db
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/database.db")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Solo para SQLite
-)
+if DATABASE_URL.startswith("sqlite:///"):
+    ruta = DATABASE_URL.replace("sqlite:///", "", 1)
+    carpeta = os.path.dirname(ruta)
+    if carpeta:
+        os.makedirs(carpeta, exist_ok=True)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 Base = declarative_base()
