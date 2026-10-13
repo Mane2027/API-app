@@ -1,33 +1,75 @@
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import Base, engine
+from database import Base, SessionLocal, engine
+from models import User
 from Rutas import (
-    productos, usuarios, reportes, inventario,
-    alertas, proveedores, ventas, compras,
+    alertas, compras, dashboard, inventario, logs,
+    productos, proveedores, reportes, usuarios, ventas,
 )
+from Rutas.auth import hash_password
 
-Base.metadata.create_all(bind=engine)
+
+def crear_admin_inicial():
+    """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD
+    (necesario porque /usuarios/registro ahora solo lo puede usar un admin)."""
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
+    if not (username and password):
+        return
+    db = SessionLocal()
+    try:
+        if db.query(User).filter_by(role="admin").first():
+            return
+        db.add(
+            User(
+                username=username,
+                email=os.getenv("ADMIN_EMAIL", f"{username}@local.invalid"),
+                password=hash_password(password),
+                role="admin",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)  # más adelante conviene migrar a Alembic
+    crear_admin_inicial()
+    yield
+
 
 app = FastAPI(
     title="API de tienda de belleza",
     description="Documentación de la API para la gestión de inventario.",
-    version="1.0.0",
+    version="1.1.0",
+    lifespan=lifespan,
 )
 
+# CORS_ORIGINS=http://localhost:3000,https://mi-frontend.com
+origenes = [
+    o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # o léelo de una variable de entorno
+    allow_origins=origenes,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-for modulo in (productos, usuarios, proveedores, ventas, compras,
-               inventario, alertas, reportes):
+for modulo in (
+    usuarios, productos, proveedores, ventas, compras,
+    inventario, alertas, reportes, dashboard, logs,
+):
     app.include_router(modulo.router)
+
 
 @app.get("/")
 def index():
     return {"message": "API FastAPI funcionando correctamente"}
-
