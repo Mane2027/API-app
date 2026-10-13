@@ -1,18 +1,34 @@
+import logging
+import os
 import smtplib
 from email.mime.text import MIMEText
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_EMAIL = "TU_CORREO@gmail.com"
-SMTP_PASSWORD = "TU_PASSWORD_APP"  # contraseña de aplicación
+logger = logging.getLogger("inventario.email")
 
-def enviar_correo(destinatario: str, asunto: str, mensaje: str):
+
+def enviar_correo(destinatario: str | None, asunto: str, mensaje: str) -> bool:
+    """Envía un correo usando variables de entorno. Nunca lanza excepciones:
+    si el SMTP no está configurado o falla, solo lo registra y devuelve False."""
+    servidor = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    puerto = int(os.getenv("SMTP_PORT", "587"))
+    correo = os.getenv("SMTP_EMAIL")
+    password = os.getenv("SMTP_PASSWORD")
+
+    if not (destinatario and correo and password):
+        logger.info("SMTP no configurado: se omite el correo '%s'", asunto)
+        return False
+
     msg = MIMEText(mensaje)
     msg["Subject"] = asunto
-    msg["From"] = SMTP_EMAIL
+    msg["From"] = correo
     msg["To"] = destinatario
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, destinatario, msg.as_string())
+    try:
+        with smtplib.SMTP(servidor, puerto, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(correo, password)
+            smtp.sendmail(correo, destinatario, msg.as_string())
+        return True
+    except Exception:
+        logger.exception("No se pudo enviar el correo '%s'", asunto)
+        return False
