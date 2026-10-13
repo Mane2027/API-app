@@ -27,7 +27,7 @@ Código
 ── requirements.txt
 ── Dockerfile
 
-── routes/
+── Rutas/
   ── alertas.py
    ── auth.py
    ── compras.py
@@ -119,7 +119,7 @@ PUT	/usuarios/{id}	Actualizar usuario
 DELETE	/usuarios/{id}	Eliminar usuario
 
 
-📦 Productos (routes/productos.py)
+📦 Productos (Rutas/productos.py)
 Método	Ruta	Descripción
 GET	/productos	Listar productos (admite filtros)
 GET	/productos/{id}	Obtener producto por ID
