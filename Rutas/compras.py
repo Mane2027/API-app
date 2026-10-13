@@ -1,105 +1,95 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from datetime import datetime
-from sqlalchemy import func
 
-from app.dependencies import get_db
-from app.models import Product, Provider, Purchase, PurchaseDetail, InventoryMovement
-from Rutas.auth import verificar_token, require_role
+from dependencies import get_db
+from models import InventoryMovement, Product, Provider, Purchase, PurchaseDetail
+from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
+from Rutas.auth import require_role, verificar_token
 from Rutas.logs import registrar_log
-from Rutas.alertas import generar_alerta
 
 router = APIRouter(prefix="/compras", tags=["Compras"])
 
 
-# ---------------------------------------------------------
-# 📌 REGISTRAR UNA COMPRA A PROVEEDOR
-# ---------------------------------------------------------
-@router.post("/", dependencies=[Depends(require_role("admin"))])
-def registrar_compra(data: PurchaseSchema, db: Session = Depends(get_db)):
-    payload = verificar_token()
+class PurchaseItem(BaseModel):
+    product_id: int
+    quantity: int = Field(gt=0)
+    price: float = Field(ge=0)  # costo unitario
 
-    proveedor = db.query(Provider).get(data.provider_id)
-    if not proveedor:
+
+class PurchaseSchema(BaseModel):
+    provider_id: int
+    items: list[PurchaseItem] = Field(min_length=1)
+
+
+@router.post("/")
+def registrar_compra(
+    data: PurchaseSchema,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_role("admin")),
+):
+    if not db.get(Provider, data.provider_id):
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
 
-    total_compra = 0
-    detalles = []
-
-    # Validar productos y calcular total
+    # Validar todo ANTES de escribir nada
+    productos = {}
     for item in data.items:
-        producto = db.query(Product).get(item.product_id)
+        producto = db.get(Product, item.product_id)
         if not producto:
             raise HTTPException(status_code=404, detail=f"Producto {item.product_id} no existe")
+        productos[item.product_id] = producto
 
-        total_compra += item.price * item.quantity
-        detalles.append((producto, item.quantity, item.price))
+    total = round(sum(i.price * i.quantity for i in data.items), 2)
 
-    # Crear compra
-    compra = Purchase(
-        total=total_compra,
-        provider_id=data.provider_id,
-        user=payload["sub"]
-    )
+    # Todo en UNA transacción: o se guarda la compra completa o no se guarda nada
+    compra = Purchase(total=total, provider_id=data.provider_id, user=payload["sub"])
     db.add(compra)
-    db.commit()
-    db.refresh(compra)
+    db.flush()  # obtiene compra.id sin hacer commit
 
-    # Registrar detalle + aumentar stock + movimiento
-    for producto, cantidad, precio in detalles:
-        detalle = PurchaseDetail(
-            purchase_id=compra.id,
-            product_id=producto.id,
-            quantity=cantidad,
-            price=precio
+    mensajes = []
+    for item in data.items:
+        producto = productos[item.product_id]
+        db.add(
+            PurchaseDetail(
+                purchase_id=compra.id,
+                product_id=producto.id,
+                quantity=item.quantity,
+                price=item.price,
+            )
         )
-        db.add(detalle)
 
         anterior = producto.stock
-        nuevo = anterior + cantidad
-        producto.stock = nuevo
-
-        movimiento = InventoryMovement(
-            product_id=producto.id,
-            movement_type="entrada",
-            quantity=cantidad,
-            previous_stock=anterior,
-            new_stock=nuevo,
-            performed_by=payload["sub"]
+        producto.stock = anterior + item.quantity
+        db.add(
+            InventoryMovement(
+                product_id=producto.id,
+                movement_type="entrada",
+                quantity=item.quantity,
+                previous_stock=anterior,
+                new_stock=producto.stock,
+                performed_by=payload["sub"],
+            )
         )
-        db.add(movimiento)
-
-        generar_alerta(db, producto)
+        mensaje = generar_alerta(db, producto)
+        if mensaje:
+            mensajes.append(mensaje)
 
     db.commit()
+    background.add_task(enviar_alertas_por_correo, mensajes)
 
-    registrar_log(db, payload["sub"], "compra", f"Compra ID {compra.id}, total {total_compra}")
-
-    return {
-        "message": "Compra registrada correctamente",
-        "compra_id": compra.id,
-        "total": total_compra
-    }
+    registrar_log(db, payload["sub"], "compra", f"Compra ID {compra.id}, total {total}")
+    return {"message": "Compra registrada correctamente", "compra_id": compra.id, "total": total}
 
 
-# ---------------------------------------------------------
-# 📌 LISTAR COMPRAS
-# ---------------------------------------------------------
 @router.get("/", dependencies=[Depends(verificar_token)])
 def listar_compras(db: Session = Depends(get_db)):
     return db.query(Purchase).order_by(Purchase.date.desc()).all()
 
 
-# ---------------------------------------------------------
-# 📌 DETALLE DE UNA COMPRA
-# ---------------------------------------------------------
 @router.get("/{compra_id}", dependencies=[Depends(verificar_token)])
 def detalle_compra(compra_id: int, db: Session = Depends(get_db)):
-    compra = db.query(Purchase).get(compra_id)
+    compra = db.get(Purchase, compra_id)
     if not compra:
         raise HTTPException(status_code=404, detail="Compra no encontrada")
-
-    return {
-        "compra": compra,
-        "detalles": compra.details
-    }
+    return {"compra": compra, "detalles": compra.details}
