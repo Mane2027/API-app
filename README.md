@@ -1,204 +1,104 @@
-API REST — Sistema de Inventario Tienda de Belleza (FastAPI + Docker)
-Backend desarrollado en Python (FastAPI) para gestionar el inventario de la tienda Divina Essence, incluyendo productos, usuarios, ventas, compras, reportes, proveedores, alertas y más.
-El sistema está modularizado mediante routers, utiliza SQLAlchemy como ORM y se ejecuta dentro de un contenedor Docker.
+# API REST — Inventario Tienda de Belleza (FastAPI + Docker)
 
-Tecnologías utilizadas
-*FastAPI — Framework moderno y rápido para APIs REST
+Backend en Python (FastAPI) para gestionar el inventario de la tienda Divina Essence:
+productos, usuarios, ventas, compras, proveedores, alertas de stock, reportes y auditoría.
 
-*Uvicorn — Servidor ASGI
+**Tecnologías:** FastAPI · Uvicorn · SQLAlchemy · SQLite · Pydantic · JWT (python-jose) · bcrypt · ReportLab · openpyxl · Docker
 
-*SQLAlchemy — ORM para la base de datos
+## Estructura
 
-*SQLite — Base de datos embebida
-
-*Pydantic — Validación de datos
-
-*Docker — Contenerización del backend
-
-*JWT — Autenticación 
-
-📦 Estructura del proyecto
-Código
+```
 .
-── main.py
-── database.py
-── models.py
-── dependencies.py
-── requirements.txt
-── Dockerfile
+├── main.py            # app, CORS, routers y admin inicial
+├── database.py        # motor y sesión (lee DATABASE_URL)
+├── models.py          # tablas
+├── dependencies.py    # get_db
+├── Rutas/             # un archivo por módulo (auth, usuarios, productos, ventas, ...)
+├── utils/email_sender.py
+├── tests/test_api.py
+├── requirements.txt / requirements-dev.txt
+├── Dockerfile / .dockerignore / .env.example
+```
 
-── Rutas/
-  ── alertas.py
-   ── auth.py
-   ── compras.py
-  ── dashboard.py
-   ── inventario.py
-   ── logs.py
-   ── productos.py
-   ── proveedores.py
-   ── reportes.py
-   ── usuarios.py
-   ── ventas.py
+## Configuración
 
-── utils/
-    └── email_sender.py
- 
-🧩 Descripción de módulos
-*main.py
-Punto de entrada de la aplicación.
-Incluye:
+Copia `.env.example` a `.env` y completa al menos `JWT_SECRET_KEY`, `ADMIN_USERNAME` y `ADMIN_PASSWORD`.
+Al arrancar, si no existe ningún administrador, se crea con esas credenciales.
 
--instancia de FastAPI
--inclusión de routers
--configuración inicial
+## Ejecutar con Docker
 
-*database.py
-Configuración de SQLAlchemy:
--motor
--sesión
--creación de tablas
-
-*models.py
-Modelos ORM que representan las tablas del sistema:
--productos
--usuarios
--proveedores
--ventas
--compras
-
-*dependencies.py
-Dependencias reutilizables:
--sesión de base de datos
--autenticación (si aplica)
-*routes/
-Carpeta con todos los módulos de rutas organizados por funcionalidad:
-
--productos
--ventas
--compras
--usuarios
--reportes
--proveedores
--dashboard
--alertas
--logs
-
-*utils/
-Funciones auxiliares:
--envío de correos
--utilidades generales
-
-*Docker
-Construir la imagen
-bash
-docker build -t fastapi_inventario:v1.0 .
-Ejecutar el contenedor
-bash
+```bash
+docker build -t fastapi_inventario:v2.0 .
 docker run -p 8000:8000 \
   -v $(pwd)/data:/app/data \
-  -e DATABASE_URL=sqlite:///app/data/database.db \
-  fastapi_inventario:v1.0
-La API queda disponible en:
-Código
-http://localhost:8000
+  --env-file .env \
+  fastapi_inventario:v2.0
+```
 
-📡 Endpoints principales
+La base de datos queda en `./data/database.db`. La API queda en <http://localhost:8000> y la documentación en `/docs` y `/redoc`.
 
- Autenticación (routes/auth.py)
-Método	Ruta	Descripción
-POST	/auth/login	Iniciar sesión y obtener token JWT
-POST	/auth/register	Registrar usuario (si lo tienes)
+## Ejecutar sin Docker
 
-
-👤 Usuarios (routes/usuarios.py)
-Método	Ruta	Descripción
-GET	/usuarios	Listar usuarios
-GET	/usuarios/{id}	Obtener usuario por ID
-POST	/usuarios	Crear usuario
-PUT	/usuarios/{id}	Actualizar usuario
-DELETE	/usuarios/{id}	Eliminar usuario
-
-
-📦 Productos (Rutas/productos.py)
-Método	Ruta	Descripción
-GET	/productos	Listar productos (admite filtros)
-GET	/productos/{id}	Obtener producto por ID
-POST	/productos	Crear producto
-PUT	/productos/{id}	Actualizar producto
-DELETE	/productos/{id}	Eliminar producto
-
-
-Filtros disponibles en GET /productos:
-
-?category=maquillaje
-
-?brand=Nivea
-
-?lowStock=true
-
-?search=labial
-
-🛒 Ventas (routes/ventas.py)
-Método	Ruta	Descripción
-GET	/ventas	Listar ventas
-POST	/ventas	Registrar venta
-GET	/ventas/{id}	Obtener venta por ID
-
-
-🧾 Compras (routes/compras.py)
-Método	Ruta	Descripción
-GET	/compras	Listar compras
-POST	/compras	Registrar compra
-GET	/compras/{id}	Obtener compra por ID
-
-
-🧪 Inventario (routes/inventario.py)
-Método	Ruta	Descripción
-GET	/inventario/resumen	Resumen general del inventario
-GET	/inventario/bajo	Productos con bajo stock
-
-
-📊 Dashboard (routes/dashboard.py)
-Método	Ruta	Descripción
-GET	/dashboard	Métricas generales del sistema
-
-
-🚨 Alertas (routes/alertas.py)
-Método	Ruta	Descripción
-GET	/alertas	Alertas del sistema
-
-
-📝 Reportes (routes/reportes.py)
-Método	Ruta	Descripción
-GET	/reportes/ventas	Reporte de ventas
-GET	/reportes/productos	Reporte de productos
-
-
-🏭 Proveedores (routes/proveedores.py)
-Método	Ruta	Descripción
-GET	/proveedores	Listar proveedores
-POST	/proveedores	Crear proveedor
-GET	/proveedores/{id}	Obtener proveedor
-
-
-📚 Logs (routes/logs.py)
-Método	Ruta	Descripción
-GET	/logs	Ver logs del sistema
-
-
-
-La documentación automática está disponible en:
-Código
-/docs
-/redoc
-
-Ejecución local sin Docker
-bash
+```bash
 pip install -r requirements.txt
+set -a; source .env; set +a      # carga las variables
 uvicorn main:app --reload
+```
 
-Seguridad implementada
--Contraseñas encriptadas 
--Autenticación mediante JWT
--Validación de datos con Pydantic
--Manejo de errores centralizado por FastAPI
+## Pruebas
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+## Autenticación
+
+- `POST /usuarios/login` (JSON `{"username","password"}`) → `access_token` (JWT, vence en 3 h por defecto).
+- Enviar `Authorization: Bearer <token>` en las demás rutas.
+- Roles: `admin` (todo) y `user` (consultar y registrar ventas).
+- `POST /usuarios/registro` solo lo puede usar un administrador.
+
+## Endpoints
+
+| Módulo | Endpoints | Acceso |
+|---|---|---|
+| Usuarios | `POST /usuarios/login`, `GET /usuarios/me` | autenticado |
+| | `POST /usuarios/registro`, `GET /usuarios`, `GET/PUT/DELETE /usuarios/{id}` | admin |
+| Productos | `GET /productos` (filtros `category`, `brand`, `lowStock`, `search`), `GET /productos/filtrar`, `GET /productos/paginacion`, `GET /productos/{id}` | autenticado |
+| | `POST /productos`, `PUT/DELETE /productos/{id}` | admin |
+| Ventas | `GET /ventas`, `GET /ventas/{id}`, `POST /ventas` | autenticado |
+| Compras | `GET /compras`, `GET /compras/{id}` | autenticado |
+| | `POST /compras` | admin |
+| Inventario | `GET /inventario/resumen`, `/inventario/bajo`, `/inventario/historial/{id}` | autenticado |
+| | `POST /inventario/entrada/{id}?cantidad=`, `POST /inventario/salida/{id}?cantidad=` | admin |
+| Proveedores | `GET /proveedores`, `GET /proveedores/{id}` | autenticado |
+| | `POST /proveedores`, `PUT/DELETE /proveedores/{id}` | admin |
+| Alertas | `GET /alertas` | autenticado |
+| Dashboard | `GET /dashboard/chart` | admin |
+| Reportes | `GET /reportes/excel`, `/reportes/pdf`, `/reportes/compras/{global,fecha,proveedor/{id},producto/{id}}`, `/reportes/ventas/{global,fecha,producto/{id}}` | admin |
+| Logs | `GET /logs` | admin |
+
+Ejemplo de venta (el precio lo toma el servidor desde la base de datos):
+
+```json
+POST /ventas
+{ "items": [ { "product_id": 1, "quantity": 2 } ] }
+```
+
+Ejemplo de compra:
+
+```json
+POST /compras
+{ "provider_id": 1, "items": [ { "product_id": 1, "quantity": 10, "price": 12000 } ] }
+```
+
+## Seguridad
+
+- Contraseñas con bcrypt; JWT firmado con `JWT_SECRET_KEY` (sin clave fija se genera una temporal y se avisa).
+- Registro de usuarios restringido a administradores; los roles se validan en cada ruta.
+- CORS limitado a `CORS_ORIGINS`.
+- Validación de datos con Pydantic (cantidades > 0, precios ≥ 0, emails válidos).
+- Ventas, compras y movimientos de inventario son transacciones atómicas; el stock no puede quedar negativo.
+- El contenedor corre sin privilegios de root.
+
