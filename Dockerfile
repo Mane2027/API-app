@@ -1,5 +1,5 @@
 # Imagen base
-FROM python:3.10
+FROM python:3.12-slim
 
 # Crear carpeta de trabajo dentro del contenedor
 WORKDIR /app
