@@ -7,11 +7,17 @@ from models import InventoryMovement, Product
 from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
 from Rutas.auth import require_role, verificar_token
 from Rutas.logs import registrar_log
+
 from fastapi.responses import StreamingResponse
 import io
 from openpyxl import Workbook
 
+router = APIRouter(prefix="/inventario", tags=["Inventario"])
 
+
+# ---------------------------------------------------------
+# EXPORTAR KARDEX A EXCEL
+# ---------------------------------------------------------
 @router.get("/kardex/excel/{product_id}", dependencies=[Depends(verificar_token)])
 def kardex_excel(product_id: int, db: Session = Depends(get_db)):
     producto = db.get(Product, product_id)
@@ -56,9 +62,10 @@ def kardex_excel(product_id: int, db: Session = Depends(get_db)):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-router = APIRouter(prefix="/inventario", tags=["Inventario"])
 
-
+# ---------------------------------------------------------
+# FUNCIÓN INTERNA PARA ENTRADAS Y SALIDAS
+# ---------------------------------------------------------
 def _mover(db, background, payload, product_id, cantidad, tipo):
     producto = db.get(Product, product_id)
     if not producto:
@@ -73,6 +80,7 @@ def _mover(db, background, payload, product_id, cantidad, tipo):
         nuevo = anterior + cantidad
 
     producto.stock = nuevo
+
     db.add(
         InventoryMovement(
             product_id=product_id,
@@ -83,8 +91,9 @@ def _mover(db, background, payload, product_id, cantidad, tipo):
             performed_by=payload["sub"],
         )
     )
+
     mensaje = generar_alerta(db, producto)
-    db.commit()  # stock + movimiento + alerta en una sola transacción
+    db.commit()
 
     if mensaje:
         background.add_task(enviar_alertas_por_correo, [mensaje])
@@ -99,6 +108,35 @@ def _mover(db, background, payload, product_id, cantidad, tipo):
         "stock_nuevo": nuevo,
     }
 
+
+# ---------------------------------------------------------
+# ENDPOINTS DE ENTRADA Y SALIDA
+# ---------------------------------------------------------
+@router.post("/entrada/{product_id}")
+def entrada_inventario(
+    product_id: int,
+    background: BackgroundTasks,
+    cantidad: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_role("admin")),
+):
+    return _mover(db, background, payload, product_id, cantidad, "entrada")
+
+
+@router.post("/salida/{product_id}")
+def salida_inventario(
+    product_id: int,
+    background: BackgroundTasks,
+    cantidad: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_role("admin")),
+):
+    return _mover(db, background, payload, product_id, cantidad, "salida")
+
+
+# ---------------------------------------------------------
+# KARDEX NORMAL
+# ---------------------------------------------------------
 @router.get("/kardex/{product_id}", dependencies=[Depends(verificar_token)])
 def kardex(product_id: int, db: Session = Depends(get_db)):
     producto = db.get(Product, product_id)
@@ -137,28 +175,11 @@ def kardex(product_id: int, db: Session = Depends(get_db)):
         "total_movimientos": len(kardex),
         "saldo_final": saldo,
     }
-@router.post("/entrada/{product_id}")
-def entrada_inventario(
-    product_id: int,
-    background: BackgroundTasks,
-    cantidad: int = Query(..., gt=0),  # antes aceptaba negativos y 0
-    db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
-):
-    return _mover(db, background, payload, product_id, cantidad, "entrada")
 
 
-@router.post("/salida/{product_id}")
-def salida_inventario(
-    product_id: int,
-    background: BackgroundTasks,
-    cantidad: int = Query(..., gt=0),
-    db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
-):
-    return _mover(db, background, payload, product_id, cantidad, "salida")
-
-
+# ---------------------------------------------------------
+# RESUMEN DE INVENTARIO
+# ---------------------------------------------------------
 @router.get("/resumen", dependencies=[Depends(verificar_token)])
 def resumen_inventario(db: Session = Depends(get_db)):
     return {
@@ -170,6 +191,9 @@ def resumen_inventario(db: Session = Depends(get_db)):
     }
 
 
+# ---------------------------------------------------------
+# PRODUCTOS CON STOCK BAJO
+# ---------------------------------------------------------
 @router.get("/bajo", dependencies=[Depends(verificar_token)])
 def productos_bajo_stock(db: Session = Depends(get_db)):
     return (
@@ -180,16 +204,17 @@ def productos_bajo_stock(db: Session = Depends(get_db)):
     )
 
 
+# ---------------------------------------------------------
+# HISTORIAL DE MOVIMIENTOS
+# ---------------------------------------------------------
 @router.get("/historial/{product_id}", dependencies=[Depends(verificar_token)])
 def historial_inventario(product_id: int, db: Session = Depends(get_db)):
     if not db.get(Product, product_id):
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+
     return (
         db.query(InventoryMovement)
         .filter_by(product_id=product_id)
         .order_by(InventoryMovement.timestamp.desc())
         .all()
     )
-
-
-   
