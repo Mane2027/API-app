@@ -94,7 +94,7 @@ def detalle_compra(compra_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Compra no encontrada")
     return {"compra": compra, "detalles": compra.details}
 
-nuevo_movimiento = Inventario(
+nuevo_movimiento = InventoryMovement(
     product_id=compra.product_id,
     type="entrada",
     quantity=compra.quantity
