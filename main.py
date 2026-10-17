@@ -11,6 +11,8 @@ from Rutas import (
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
+from Rutas import dashboard
+app.include_router(dashboard.router)
 
 
 def crear_admin_inicial():
