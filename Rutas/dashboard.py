@@ -1,67 +1,54 @@
-from datetime import date, datetime, timedelta
-
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
-
 from dependencies import get_db
-from models import InventoryMovement, Product
-from Rutas.auth import require_role
+from models import Sale, Purchase, Product, InventoryMovement
+from sqlalchemy import func
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
+@router.get("/")
+def obtener_dashboard(db: Session = Depends(get_db)):
 
-@router.get("/chart", dependencies=[Depends(require_role("admin"))])
-def datos_dashboard(db: Session = Depends(get_db)):
-    total_productos = db.query(Product).count()
-    activos = db.query(Product).filter(Product.is_active.is_(True)).count()
-    inactivos = total_productos - activos
-
-    stock_total = db.query(func.sum(Product.stock)).scalar() or 0
-    stock_bajo = db.query(Product).filter(Product.stock <= Product.min_stock).count()
-    stock_agotado = db.query(Product).filter(Product.stock == 0).count()
-    stock_critico = db.query(Product).filter(Product.stock < (Product.min_stock / 2)).count()
-    valor_total = db.query(func.sum(Product.stock * Product.price)).scalar() or 0
-
-    categorias = db.query(Product.category, func.count(Product.id)).group_by(Product.category).all()
-    marcas = db.query(Product.brand, func.count(Product.id)).group_by(Product.brand).all()
-
-    # expiration_date es Date: se compara con date, no con datetime
-    proximos_vencer = (
-        db.query(Product)
-        .filter(
-            Product.expiration_date.is_not(None),
-            Product.expiration_date <= date.today() + timedelta(days=30),
+    # Ventas por mes
+    ventas = (
+        db.query(
+            func.to_char(Sale.date, "YYYY-MM").label("month"),
+            func.sum(Sale.total).label("total")
         )
-        .count()
+        .group_by("month")
+        .order_by("month")
+        .all()
     )
 
-    recientes = (
-        db.query(Product)
-        .filter(Product.created_at >= datetime.now() - timedelta(days=7))
-        .count()
+    # Compras por proveedor
+    compras = (
+        db.query(
+            Purchase.provider_id,
+            func.sum(Purchase.total).label("total")
+        )
+        .group_by(Purchase.provider_id)
+        .all()
     )
 
-    entradas = db.query(InventoryMovement).filter(InventoryMovement.movement_type == "entrada").count()
-    salidas = db.query(InventoryMovement).filter(InventoryMovement.movement_type == "salida").count()
+    # Productos más vendidos
+    top = (
+        db.query(
+            Product.name,
+            func.sum(SaleDetail.quantity).label("quantity")
+        )
+        .join(SaleDetail, SaleDetail.product_id == Product.id)
+        .group_by(Product.name)
+        .order_by(func.sum(SaleDetail.quantity).desc())
+        .limit(5)
+        .all()
+    )
+
+    # Stock bajo
+    bajo = db.query(Product).filter(Product.stock < 10).all()
 
     return {
-        "productos": {
-            "total": total_productos,
-            "activos": activos,
-            "inactivos": inactivos,
-            "recientes": recientes,
-        },
-        "stock": {
-            "total": stock_total,
-            "bajo": stock_bajo,
-            "critico": stock_critico,
-            "agotado": stock_agotado,
-            "valor_total": valor_total,
-        },
-        "categorias": [[nombre, n] for nombre, n in categorias],
-        "marcas": [[nombre, n] for nombre, n in marcas],
-        "vencimiento": {"proximos_vencer": proximos_vencer},
-        "movimientos": {"entradas": entradas, "salidas": salidas},
+        "sales_per_month": [{"month": m, "total": t} for m, t in ventas],
+        "purchases_by_provider": [{"provider": p, "total": t} for p, t in compras],
+        "top_products": [{"name": n, "quantity": q} for n, q in top],
+        "low_stock": bajo,
     }
-
