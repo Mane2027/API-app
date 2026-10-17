@@ -51,7 +51,44 @@ def _mover(db, background, payload, product_id, cantidad, tipo):
         "stock_nuevo": nuevo,
     }
 
+@router.get("/kardex/{product_id}", dependencies=[Depends(verificar_token)])
+def kardex(product_id: int, db: Session = Depends(get_db)):
+    producto = db.get(Product, product_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
 
+    movimientos = (
+        db.query(InventoryMovement)
+        .filter_by(product_id=product_id)
+        .order_by(InventoryMovement.timestamp.asc())
+        .all()
+    )
+
+    saldo = 0
+    kardex = []
+
+    for mov in movimientos:
+        if mov.movement_type == "entrada":
+            saldo += mov.quantity
+        else:
+            saldo -= mov.quantity
+
+        kardex.append({
+            "fecha": mov.timestamp,
+            "tipo": mov.movement_type,
+            "cantidad": mov.quantity,
+            "stock_anterior": mov.previous_stock,
+            "stock_nuevo": mov.new_stock,
+            "saldo_kardex": saldo,
+            "usuario": mov.performed_by,
+        })
+
+    return {
+        "producto": producto.name,
+        "kardex": kardex,
+        "total_movimientos": len(kardex),
+        "saldo_final": saldo,
+    }
 @router.post("/entrada/{product_id}")
 def entrada_inventario(
     product_id: int,
