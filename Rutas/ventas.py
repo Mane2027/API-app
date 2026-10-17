@@ -126,20 +126,3 @@ def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
             for d, nombre in detalles
         ],
     }
-anterior = producto.stock
-
-if anterior < item.quantity:
-    raise HTTPException(status_code=400, detail="Stock insuficiente")
-
-producto.stock = anterior - item.quantity
-
-db.add(
-    InventoryMovement(
-        product_id=producto.id,
-        movement_type="salida",
-        quantity=item.quantity,
-        previous_stock=anterior,
-        new_stock=producto.stock,
-        performed_by=payload["sub"],
-    )
-)
