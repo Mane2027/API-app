@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from dependencies import get_db
-from models import Sale, Purchase, Product, InventoryMovement
 from sqlalchemy import func
+
+from dependencies import get_db
+from models import Sale, SaleDetail, Purchase, Provider, Product
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -23,10 +24,11 @@ def obtener_dashboard(db: Session = Depends(get_db)):
     # Compras por proveedor
     compras = (
         db.query(
-            Purchase.provider_id,
+            Provider.name,
             func.sum(Purchase.total).label("total")
         )
-        .group_by(Purchase.provider_id)
+        .join(Provider, Provider.id == Purchase.provider_id)
+        .group_by(Provider.name)
         .all()
     )
 
@@ -47,8 +49,8 @@ def obtener_dashboard(db: Session = Depends(get_db)):
     bajo = db.query(Product).filter(Product.stock < 10).all()
 
     return {
-        "sales_per_month": [{"month": m, "total": t} for m, t in ventas],
-        "purchases_by_provider": [{"provider": p, "total": t} for p, t in compras],
-        "top_products": [{"name": n, "quantity": q} for n, q in top],
+        "sales_per_month": [{"month": m, "total": float(t)} for m, t in ventas],
+        "purchases_by_provider": [{"provider": p, "total": float(t)} for p, t in compras],
+        "top_products": [{"name": n, "quantity": int(q)} for n, q in top],
         "low_stock": bajo,
     }
