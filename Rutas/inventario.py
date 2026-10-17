@@ -7,6 +7,54 @@ from models import InventoryMovement, Product
 from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
 from Rutas.auth import require_role, verificar_token
 from Rutas.logs import registrar_log
+from fastapi.responses import StreamingResponse
+import io
+from openpyxl import Workbook
+
+
+@router.get("/kardex/excel/{product_id}", dependencies=[Depends(verificar_token)])
+def kardex_excel(product_id: int, db: Session = Depends(get_db)):
+    producto = db.get(Product, product_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    movimientos = (
+        db.query(InventoryMovement)
+        .filter_by(product_id=product_id)
+        .order_by(InventoryMovement.timestamp.asc())
+        .all()
+    )
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Kardex"
+
+    ws.append([
+        "Fecha", "Tipo", "Cantidad", "Stock Anterior",
+        "Stock Nuevo", "Usuario"
+    ])
+
+    for mov in movimientos:
+        ws.append([
+            mov.timestamp,
+            mov.movement_type,
+            mov.quantity,
+            mov.previous_stock,
+            mov.new_stock,
+            mov.performed_by,
+        ])
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    filename = f"kardex_{producto.name}.xlsx"
+
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 router = APIRouter(prefix="/inventario", tags=["Inventario"])
 
