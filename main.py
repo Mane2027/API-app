@@ -11,7 +11,8 @@ from Rutas import (
 from Rutas.auth import hash_password
 from fastapi.middleware.cors import CORSMiddleware
 origins = [
-    "http://localhost:5173",  # React + Vite
+    "http://localhost:5173",
+    "https://refactored-space-telegram-vpqwr794qxp93x8xj-8000.app.github.dev"
 ]
 
 app.add_middleware(
