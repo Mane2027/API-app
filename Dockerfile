@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,11 +10,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-# Instalar herramientas necesarias para useradd
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    shadow \
-    && rm -rf /var/lib/apt/lists/*
 
 # Usuario sin privilegios y carpeta de la base de datos
 RUN useradd --create-home appuser \
