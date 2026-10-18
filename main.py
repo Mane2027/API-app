@@ -12,7 +12,7 @@ from Rutas.auth import hash_password
 from fastapi.middleware.cors import CORSMiddleware
 origins = [
     "http://localhost:5173",
-    "https://refactored-space-telegram-vpqwr794qxp93x8xj-8000.app.github.dev"
+    "https://refactored-space-telegram-vpqwr794qxp93x9xj-8000.app.github.dev/docs"
 ]
 
 app.add_middleware(
