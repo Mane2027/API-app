@@ -2,6 +2,8 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from database import Base, SessionLocal, engine
 from models import User
 from Rutas import (
@@ -9,18 +11,7 @@ from Rutas import (
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
-from fastapi.middleware.cors import CORSMiddleware
-origins = [
-    "http://localhost:5173",
-    "https://refactored-space-telegram-vpqwr794qxp93x9xj-8000.app.github.dev/docs"
-]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 def crear_admin_inicial():
     """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD."""
@@ -61,14 +52,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# CORS (después de crear app)
 origenes = [
-    o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if o.strip()
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origenes,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
