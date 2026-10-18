@@ -13,6 +13,7 @@ COPY . .
 
 # Instalar herramientas necesarias para useradd
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    shadow \
     passwd \
     uidmap \
     login \
