@@ -14,9 +14,6 @@ COPY . .
 # Instalar herramientas necesarias para useradd
 RUN apt-get update && apt-get install -y --no-install-recommends \
     shadow \
-    passwd \
-    uidmap \
-    login \
     && rm -rf /var/lib/apt/lists/*
 
 # Usuario sin privilegios y carpeta de la base de datos
