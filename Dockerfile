@@ -11,9 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Usuario sin privilegios y carpeta de la base de datos
-RUN useradd --create-home appuser \
-    && mkdir -p /app/data \
-    && chown -R appuser:appuser /app
+# Crear carpeta de la base de datos (sin cambiar usuario)
+RUN mkdir -p /app/data
 
-USER appuser
+# Ejecutar como root (evita el error en Codespaces)
+# USER appuser   <-- eliminar esta línea
