@@ -12,6 +12,10 @@ from fastapi.responses import StreamingResponse
 import io
 from openpyxl import Workbook
 
+# PDF
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
 router = APIRouter(prefix="/inventario", tags=["Inventario"])
 
 
@@ -59,6 +63,67 @@ def kardex_excel(product_id: int, db: Session = Depends(get_db)):
     return StreamingResponse(
         stream,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ---------------------------------------------------------
+# EXPORTAR KARDEX A PDF
+# ---------------------------------------------------------
+@router.get("/kardex/pdf/{product_id}", dependencies=[Depends(verificar_token)])
+def kardex_pdf(product_id: int, db: Session = Depends(get_db)):
+    producto = db.get(Product, product_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    movimientos = (
+        db.query(InventoryMovement)
+        .filter_by(product_id=product_id)
+        .order_by(InventoryMovement.timestamp.asc())
+        .all()
+    )
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(50, 750, f"KARDEX - {producto.name}")
+
+    pdf.setFont("Helvetica", 10)
+    y = 720
+
+    pdf.drawString(50, y, "Fecha")
+    pdf.drawString(150, y, "Tipo")
+    pdf.drawString(220, y, "Cantidad")
+    pdf.drawString(300, y, "Anterior")
+    pdf.drawString(380, y, "Nuevo")
+    pdf.drawString(450, y, "Usuario")
+
+    y -= 20
+
+    for mov in movimientos:
+        if y < 50:
+            pdf.showPage()
+            pdf.setFont("Helvetica", 10)
+            y = 750
+
+        pdf.drawString(50, y, str(mov.timestamp))
+        pdf.drawString(150, y, mov.movement_type)
+        pdf.drawString(220, y, str(mov.quantity))
+        pdf.drawString(300, y, str(mov.previous_stock))
+        pdf.drawString(380, y, str(mov.new_stock))
+        pdf.drawString(450, y, mov.performed_by)
+
+        y -= 20
+
+    pdf.save()
+    buffer.seek(0)
+
+    filename = f"kardex_{producto.name}.pdf"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -218,3 +283,5 @@ def historial_inventario(product_id: int, db: Session = Depends(get_db)):
         .order_by(InventoryMovement.timestamp.desc())
         .all()
     )
+  
+
