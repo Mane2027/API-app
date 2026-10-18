@@ -2,8 +2,6 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from database import Base, SessionLocal, engine
 from models import User
 from Rutas import (
@@ -11,7 +9,17 @@ from Rutas import (
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
+from fastapi.middleware.cors import CORSMiddleware
+origins = [
+    "http://localhost:5173",  # React + Vite
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def crear_admin_inicial():
     """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD."""
