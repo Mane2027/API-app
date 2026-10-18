@@ -6,19 +6,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Primero las dependencias: Docker reutiliza esta capa si solo cambia el código
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Instalar herramientas necesarias para useradd
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    passwd \
+    uidmap \
+    login \
+    && rm -rf /var/lib/apt/lists/*
+
 # Usuario sin privilegios y carpeta de la base de datos
 RUN useradd --create-home appuser \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
+
 USER appuser
-
-VOLUME /app/data
-EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
