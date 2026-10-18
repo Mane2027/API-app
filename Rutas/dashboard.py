@@ -16,7 +16,7 @@ def dashboard_filtrado(
     # Ventas filtradas
     ventas = (
         db.query(
-            func.to_char(Sale.date, "YYYY-MM-DD").label("date"),
+            func.strftime("%Y-%m", Sale.date).label("month"),
             func.sum(Sale.total).label("total")
         )
         .filter(Sale.date >= start, Sale.date <= end)
