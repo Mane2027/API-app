@@ -11,21 +11,20 @@ from Rutas import (
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
-from Rutas import dashboard
-app.include_router(dashboard.router)
 
 
 def crear_admin_inicial():
-    """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD
-    (necesario porque /usuarios/registro ahora solo lo puede usar un admin)."""
+    """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD."""
     username = os.getenv("ADMIN_USERNAME")
     password = os.getenv("ADMIN_PASSWORD")
     if not (username and password):
         return
+
     db = SessionLocal()
     try:
         if db.query(User).filter_by(role="admin").first():
             return
+
         db.add(
             User(
                 username=username,
@@ -41,7 +40,7 @@ def crear_admin_inicial():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)  # más adelante conviene migrar a Alembic
+    Base.metadata.create_all(bind=engine)
     crear_admin_inicial()
     yield
 
@@ -53,10 +52,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS_ORIGINS=http://localhost:3000,https://mi-frontend.com
+# CORS
 origenes = [
     o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origenes,
@@ -65,6 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Routers
 for modulo in (
     usuarios, productos, proveedores, ventas, compras,
     inventario, alertas, reportes, dashboard, logs,
