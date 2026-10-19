@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session
 from dependencies import get_db
 from models import InventoryMovement, Product, Provider, Purchase, PurchaseDetail
 from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
-from Rutas.auth import require_role, verificar_token
+from Rutas.auth import require_role
 from Rutas.logs import registrar_log
  
 router = APIRouter(prefix="/compras", tags=["Compras"])
+ 
+# Roles que pueden ver y registrar compras (entradas de inventario)
+ROLES_COMPRAS = ("admin", "inventario")
  
  
 class PurchaseItem(BaseModel):
@@ -27,7 +30,7 @@ def registrar_compra(
     data: PurchaseSchema,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
+    payload: dict = Depends(require_role(*ROLES_COMPRAS)),
 ):
     if not db.get(Provider, data.provider_id):
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
@@ -82,7 +85,7 @@ def registrar_compra(
     return {"message": "Compra registrada correctamente", "compra_id": compra.id, "total": total}
  
  
-@router.get("/", dependencies=[Depends(verificar_token)])
+@router.get("/", dependencies=[Depends(require_role(*ROLES_COMPRAS))])
 def listar_compras(db: Session = Depends(get_db)):
     """Lista las compras con el nombre del proveedor y sus productos (items)."""
     compras = db.query(Purchase).order_by(Purchase.date.desc()).all()
@@ -114,11 +117,10 @@ def listar_compras(db: Session = Depends(get_db)):
     ]
  
  
-@router.get("/{compra_id}", dependencies=[Depends(verificar_token)])
+@router.get("/{compra_id}", dependencies=[Depends(require_role(*ROLES_COMPRAS))])
 def detalle_compra(compra_id: int, db: Session = Depends(get_db)):
     compra = db.get(Purchase, compra_id)
     if not compra:
         raise HTTPException(status_code=404, detail="Compra no encontrada")
     return {"compra": compra, "detalles": compra.details}
  
-
