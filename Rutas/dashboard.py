@@ -6,9 +6,12 @@ from sqlalchemy import func, literal_column
  
 from database import engine
 from dependencies import get_db
+from Rutas.auth import verificar_token
 from models import Sale, SaleDetail, Purchase, Provider, Product
  
-router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+router = APIRouter(
+    prefix="/dashboard", tags=["Dashboard"], dependencies=[Depends(verificar_token)]
+)
  
  
 def mes_de(columna):
