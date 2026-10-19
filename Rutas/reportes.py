@@ -1,4 +1,4 @@
-rom datetime import date
+from datetime import date
 from io import BytesIO
  
 from fastapi import APIRouter, Depends, HTTPException
