@@ -5,10 +5,10 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 # En Docker se define DATABASE_URL (ruta absoluta = 4 barras: sqlite:////app/data/database.db).
 # Sin la variable, usa ./data/database.db
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/database.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgres:///./data/database.db")
 
-if DATABASE_URL.startswith("sqlite:///"):
-    ruta = DATABASE_URL.replace("sqlite:///", "", 1)
+if  DATABASE_URL.startswith("postgres://"):
+    ruta =DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     carpeta = os.path.dirname(ruta)
     if carpeta:
         os.makedirs(carpeta, exist_ok=True)
