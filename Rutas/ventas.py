@@ -7,10 +7,13 @@ from sqlalchemy.orm import Session
 from dependencies import get_db
 from models import InventoryMovement, Product, Sale, SaleDetail
 from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
-from Rutas.auth import verificar_token
+from Rutas.auth import require_role
 from Rutas.logs import registrar_log
  
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
+ 
+# Roles que pueden ver y registrar ventas
+ROLES_VENTAS = ("admin", "vendedor")
  
  
 class SaleItem(BaseModel):
@@ -27,7 +30,7 @@ def registrar_venta(
     data: SaleSchema,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
-    payload: dict = Depends(verificar_token),
+    payload: dict = Depends(require_role(*ROLES_VENTAS)),
 ):
     # Si el mismo producto viene dos veces, se suman las cantidades
     cantidades: dict[int, int] = defaultdict(int)
@@ -96,7 +99,7 @@ def registrar_venta(
     return {"message": "Venta registrada correctamente", "venta_id": venta.id, "total": total}
  
  
-@router.get("/", dependencies=[Depends(verificar_token)])
+@router.get("/", dependencies=[Depends(require_role(*ROLES_VENTAS))])
 def listar_ventas(db: Session = Depends(get_db)):
     """Lista las ventas con sus productos (items): nombre, cantidad y precio."""
     ventas = db.query(Sale).order_by(Sale.date.desc()).all()
@@ -125,7 +128,7 @@ def listar_ventas(db: Session = Depends(get_db)):
     ]
  
  
-@router.get("/{venta_id}", dependencies=[Depends(verificar_token)])
+@router.get("/{venta_id}", dependencies=[Depends(require_role(*ROLES_VENTAS))])
 def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
     venta = db.get(Sale, venta_id)
     if not venta:
