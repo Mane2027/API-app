@@ -74,6 +74,9 @@ for modulo in (
     inventario, alertas, reportes, dashboard, logs,
 ):
     app.include_router(modulo.router)
+    app.include_router(recuperar_router)
+from Rutas.recuperar import router as recuperar_router
+
 
 
 @app.get("/")
