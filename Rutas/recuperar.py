@@ -48,18 +48,20 @@ def send_email(to: str, link: str):
         },
         timeout=10,
     )
+    print("Resend respondió:", r.status_code, r.text)
     r.raise_for_status()
 
 
 @router.post("/forgot-password")
 def forgot_password(data: ForgotIn, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(email=data.email).first()
+    print("forgot-password:", data.email, "| usuario encontrado:", bool(user))
     if user:
         token = create_reset_token(user.email)
         try:
             send_email(user.email, f"{FRONTEND_URL}/restablecer?token={token}")
         except Exception as e:
-            print("Error enviando correo:", e)
+            print("Error enviando correo:", repr(e))
     # Misma respuesta exista o no el correo
     return {"message": "Si el correo existe, recibirás un enlace."}
 
