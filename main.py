@@ -11,6 +11,8 @@ from Rutas import (
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
+from Rutas.recuperar import router as recuperar_router
+
 
 
 def crear_admin_inicial():
