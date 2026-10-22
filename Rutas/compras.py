@@ -123,4 +123,49 @@ def detalle_compra(compra_id: int, db: Session = Depends(get_db)):
     if not compra:
         raise HTTPException(status_code=404, detail="Compra no encontrada")
     return {"compra": compra, "detalles": compra.details}
- 
+
+@router.delete("/{compra_id}")
+def eliminar_compra(
+    compra_id: int,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_role("admin")),  # o *ROLES_COMPRAS si inventario también puede
+):
+    compra = db.get(Purchase, compra_id)
+    if not compra:
+        raise HTTPException(status_code=404, detail="Compra no encontrada")
+
+    detalles = db.query(PurchaseDetail).filter(PurchaseDetail.purchase_id == compra.id).all()
+
+    # Validar ANTES de escribir: no dejar stock negativo si ya se vendió parte
+    for d in detalles:
+        producto = db.get(Product, d.product_id)
+        if producto and producto.stock < d.quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede eliminar: '{producto.name}' tiene stock {producto.stock} "
+                       f"y esta compra sumó {d.quantity}",
+            )
+
+    # Revertir stock y dejar rastro en el historial de movimientos
+    for d in detalles:
+        producto = db.get(Product, d.product_id)
+        if producto:
+            anterior = producto.stock
+            producto.stock = anterior - d.quantity
+            db.add(
+                InventoryMovement(
+                    product_id=producto.id,
+                    movement_type="salida",  # cámbialo si usas otro tipo para anulaciones
+                    quantity=d.quantity,
+                    previous_stock=anterior,
+                    new_stock=producto.stock,
+                    performed_by=payload["sub"],
+                )
+            )
+        db.delete(d)
+
+    db.delete(compra)
+    db.commit()
+
+    registrar_log(db, payload["sub"], "eliminar_compra", f"Compra ID {compra_id} eliminada")
+    return {"message": "Compra eliminada correctamente"}
