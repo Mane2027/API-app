@@ -15,7 +15,7 @@ from Rutas.auth import hash_password
 router = APIRouter(prefix="/auth", tags=["Recuperar contraseña"])
 
 RESET_SECRET = os.getenv("RESET_SECRET_KEY")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
 
 class ForgotIn(BaseModel):
@@ -49,7 +49,7 @@ def send_email(to: str, link: str):
         },
         timeout=10,
     )
-    print("Resend respondió:", r.status_code, r.text)
+    print("Resend respondió:", r.status_code)
     r.raise_for_status()
 
 
@@ -60,7 +60,6 @@ def forgot_password(data: ForgotIn, db: Session = Depends(get_db)):
         .filter(func.lower(User.email) == data.email.strip().lower())
         .first()
     )
-    print("forgot-password:", data.email, "| usuario encontrado:", bool(user))
     if user:
         token = create_reset_token(user.email)
         try:
