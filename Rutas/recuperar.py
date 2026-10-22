@@ -5,18 +5,12 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt, JWTError
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from dependencies import get_db
 from models import User
 from Rutas.auth import hash_password
-from sqlalchemy import func
-
-user = (
-    db.query(User)
-    .filter(func.lower(User.email) == data.email.strip().lower())
-    .first()
-)
 
 router = APIRouter(prefix="/auth", tags=["Recuperar contraseña"])
 
@@ -61,7 +55,11 @@ def send_email(to: str, link: str):
 
 @router.post("/forgot-password")
 def forgot_password(data: ForgotIn, db: Session = Depends(get_db)):
-    user = db.query(User).filter_by(email=data.email).first()
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == data.email.strip().lower())
+        .first()
+    )
     print("forgot-password:", data.email, "| usuario encontrado:", bool(user))
     if user:
         token = create_reset_token(user.email)
