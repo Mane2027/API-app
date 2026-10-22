@@ -10,6 +10,13 @@ from sqlalchemy.orm import Session
 from dependencies import get_db
 from models import User
 from Rutas.auth import hash_password
+from sqlalchemy import func
+
+user = (
+    db.query(User)
+    .filter(func.lower(User.email) == data.email.strip().lower())
+    .first()
+)
 
 router = APIRouter(prefix="/auth", tags=["Recuperar contraseña"])
 
