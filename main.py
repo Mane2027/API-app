@@ -7,14 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import Base, SessionLocal, engine
 from models import User
 from Rutas import (
-    alertas, compras, dashboard, inventario, logs,
+    alertas, compras, dashboard, export, inventario, logs,
     productos, proveedores, reportes, usuarios, ventas,
 )
 from Rutas.auth import hash_password
 from Rutas.recuperar import router as recuperar_router
-from Rutas import export
-
-
 
 
 def crear_admin_inicial():
@@ -76,11 +73,11 @@ app.add_middleware(
 for modulo in (
     usuarios, productos, proveedores, ventas, compras,
     inventario, alertas, reportes, dashboard, logs,
+    export,
 ):
     app.include_router(modulo.router)
-    app.include_router(recuperar_router)
-from Rutas.recuperar import router as recuperar_router
 
+app.include_router(recuperar_router)
 
 
 @app.get("/")
