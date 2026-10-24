@@ -12,6 +12,9 @@ from Rutas import (
 )
 from Rutas.auth import hash_password
 from Rutas.recuperar import router as recuperar_router
+from Rutas import export
+
+app.include_router(export.router)
 
 
 
