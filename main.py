@@ -12,7 +12,7 @@ from Rutas import (
 )
 from Rutas.auth import hash_password
 from Rutas.recuperar import router as recuperar_router
-
+  from Rutas.reportes_extra import router as reportes_extra_router
 
 def crear_admin_inicial():
     """Si no existe ningún administrador, crea uno con ADMIN_USERNAME / ADMIN_PASSWORD."""
@@ -78,6 +78,7 @@ for modulo in (
     app.include_router(modulo.router)
 
 app.include_router(recuperar_router)
+app.include_router(reportes_extra_router)
 
 
 @app.get("/")
