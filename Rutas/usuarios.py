@@ -11,6 +11,8 @@ from Rutas.auth import (
     create_token, hash_password, require_role, verificar_token, verify_password,
 )
 from Rutas.logs import registrar_log
+ROLES_VALIDOS = ("admin", "inventario", "vendedor", "user")
+
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -20,7 +22,6 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     role: Literal["admin", "inventario", "vendedor", "user"]
-    ROLES_VALIDOS = ("admin", "inventario", "vendedor", "user")
 
 
 
