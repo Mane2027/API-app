@@ -34,7 +34,7 @@ class UserLogin(BaseModel):
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=72)
-    role: Literal["admin", "user"] | None = None
+    role: Literal["admin", "inventario", "vendedor", "user"]
 
 
 def _publico(u: User) -> dict:
