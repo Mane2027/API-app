@@ -1,120 +1,99 @@
-from datetime import date
- 
+from collections import defaultdict
+from datetime import date, datetime, time, timedelta
+
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, literal_column
- 
-from database import engine
+
 from dependencies import get_db
+from models import Product, Purchase, Sale, SaleDetail
 from Rutas.auth import verificar_token
-from models import Sale, SaleDetail, Purchase, Provider, Product
- 
-router = APIRouter(
-    prefix="/dashboard", tags=["Dashboard"], dependencies=[Depends(verificar_token)]
-)
- 
- 
-def mes_de(columna):
-    """Devuelve 'YYYY-MM' tanto en PostgreSQL como en SQLite."""
-    if engine.dialect.name == "postgresql":
-        return func.to_char(columna, literal_column("'YYYY-MM'"))
-    return func.strftime("%Y-%m", columna)
- 
- 
-def construir_dashboard(db: Session, start: date | None = None, end: date | None = None):
-    filtrar = bool(start and end)
- 
-    # Ventas por mes
-    mes = mes_de(Sale.date)
-    q_ventas = db.query(mes.label("month"), func.sum(Sale.total).label("total"))
-    if filtrar:
-        q_ventas = q_ventas.filter(
-            func.date(Sale.date) >= start, func.date(Sale.date) <= end
-        )
-    ventas = q_ventas.group_by(mes).order_by(mes).all()
- 
-    # Compras por proveedor
-    q_compras = db.query(
-        Provider.name, func.sum(Purchase.total).label("total")
-    ).join(Provider, Provider.id == Purchase.provider_id)
-    if filtrar:
-        q_compras = q_compras.filter(
-            func.date(Purchase.date) >= start, func.date(Purchase.date) <= end
-        )
-    compras = q_compras.group_by(Provider.name).all()
- 
-    # Productos más vendidos
-    q_top = db.query(
-        Product.name, func.sum(SaleDetail.quantity).label("quantity")
-    ).join(SaleDetail, SaleDetail.product_id == Product.id)
-    if filtrar:
-        q_top = q_top.join(Sale, Sale.id == SaleDetail.sale_id).filter(
-            func.date(Sale.date) >= start, func.date(Sale.date) <= end
-        )
-    top = (
-        q_top.group_by(Product.name)
+
+router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
+MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+
+def _mes_atras(d: date, n: int) -> date:
+    """Primer día del mes que queda n meses antes de d."""
+    m = d.month - 1 - n
+    return date(d.year + m // 12, m % 12 + 1, 1)
+
+
+@router.get("/resumen", dependencies=[Depends(verificar_token)])
+def resumen(db: Session = Depends(get_db)):
+    hoy = date.today()
+    inicio_mes = datetime.combine(hoy.replace(day=1), time.min)
+    activos = Product.is_active.is_(True)
+
+    # Tarjetas
+    total_productos = db.query(func.count(Product.id)).filter(activos).scalar() or 0
+    unidades = db.query(func.coalesce(func.sum(Product.stock), 0)).filter(activos).scalar() or 0
+    valor_inventario = (
+        db.query(func.coalesce(func.sum(Product.stock * func.coalesce(Product.cost, 0)), 0))
+        .filter(activos).scalar() or 0
+    )
+    stock_bajo = (
+        db.query(func.count(Product.id))
+        .filter(activos, Product.stock <= Product.min_stock).scalar() or 0
+    )
+    ventas_mes = (
+        db.query(func.coalesce(func.sum(Sale.total), 0)).filter(Sale.date >= inicio_mes).scalar() or 0
+    )
+    compras_mes = (
+        db.query(func.coalesce(func.sum(Purchase.total), 0)).filter(Purchase.date >= inicio_mes).scalar() or 0
+    )
+
+    # Barras: ventas y compras de los últimos 6 meses
+    meses = [_mes_atras(hoy, n) for n in range(5, -1, -1)]
+    desde = datetime.combine(meses[0], time.min)
+    ventas_por_mes, compras_por_mes = defaultdict(float), defaultdict(float)
+    for v in db.query(Sale).filter(Sale.date >= desde).all():
+        ventas_por_mes[(v.date.year, v.date.month)] += v.total
+    for c in db.query(Purchase).filter(Purchase.date >= desde).all():
+        compras_por_mes[(c.date.year, c.date.month)] += c.total
+    mensual = [
+        {
+            "mes": MESES[m.month - 1],
+            "ventas": round(ventas_por_mes[(m.year, m.month)], 2),
+            "compras": round(compras_por_mes[(m.year, m.month)], 2),
+        }
+        for m in meses
+    ]
+
+    # Dona: unidades en stock por categoría
+    por_categoria = [
+        {"categoria": cat or "otro", "unidades": int(u or 0)}
+        for cat, u in db.query(Product.category, func.sum(Product.stock)).filter(activos).group_by(Product.category).all()
+        if (u or 0) > 0
+    ]
+
+    # Productos con más salidas en los últimos 30 días
+    hace_30 = datetime.combine(hoy - timedelta(days=30), time.min)
+    filas = (
+        db.query(SaleDetail.product_id, func.sum(SaleDetail.quantity).label("total"))
+        .join(Sale, SaleDetail.sale_id == Sale.id)
+        .filter(Sale.date >= hace_30)
+        .group_by(SaleDetail.product_id)
         .order_by(func.sum(SaleDetail.quantity).desc())
-        .limit(5)
-        .all()
+        .limit(5).all()
     )
- 
-    # Stock bajo
-    bajo = db.query(Product).filter(Product.stock < 10).all()
- 
+    nombres = {p.id: p.name for p in db.query(Product).all()}
+    top = [
+        {"producto": nombres.get(pid, f"Producto #{pid}"), "unidades": int(total)}
+        for pid, total in filas
+    ]
+
     return {
-        "sales_per_month": [{"month": m, "total": float(t or 0)} for m, t in ventas],
-        "purchases_by_provider": [{"provider": p, "total": float(t or 0)} for p, t in compras],
-        "top_products": [{"name": n, "quantity": int(q or 0)} for n, q in top],
-        "low_stock": [{"id": p.id, "name": p.name, "stock": p.stock} for p in bajo],
-    }
- 
- 
-@router.get("/filtrado")
-def dashboard_filtrado(start: date, end: date, db: Session = Depends(get_db)):
-    return construir_dashboard(db, start, end)
- 
- 
-@router.get("/stats")
-def estadisticas(db: Session = Depends(get_db)):
-    # Promedio de ventas por día
-    diario = (
-        db.query(func.sum(Sale.total).label("t"))
-        .group_by(func.date(Sale.date))
-        .subquery()
-    )
-    promedio = db.query(func.avg(diario.c.t)).scalar() or 0
- 
-    # Producto con más unidades vendidas
-    rentable = (
-        db.query(Product.name, func.sum(SaleDetail.quantity).label("q"))
-        .join(SaleDetail, SaleDetail.product_id == Product.id)
-        .group_by(Product.name)
-        .order_by(func.sum(SaleDetail.quantity).desc())
-        .first()
-    )
- 
-    # Proveedor con mayor volumen de compras
-    proveedor = (
-        db.query(Provider.name, func.sum(Purchase.total).label("total"))
-        .join(Provider, Provider.id == Purchase.provider_id)
-        .group_by(Provider.name)
-        .order_by(func.sum(Purchase.total).desc())
-        .first()
-    )
- 
-    return {
-        "promedio_diario": round(float(promedio), 2),
-        "producto_rentable": {"name": rentable[0] if rentable else "—"},
-        "proveedor_top": {
-            "name": proveedor[0] if proveedor else "—",
-            "total": float(proveedor[1]) if proveedor else 0,
+        "tarjetas": {
+            "productos": total_productos,
+            "unidades": int(unidades),
+            "valor_inventario": round(float(valor_inventario), 2),
+            "stock_bajo": stock_bajo,
+            "ventas_mes": round(float(ventas_mes), 2),
+            "compras_mes": round(float(compras_mes), 2),
         },
+        "mensual": mensual,
+        "por_categoria": por_categoria,
+        "top_productos": top,
     }
- 
- 
-# Sin barra final, para evitar la redirección 307 detrás del proxy
-@router.get("")
-@router.get("/", include_in_schema=False)
-def obtener_dashboard(db: Session = Depends(get_db)):
-    return construir_dashboard(db)
- 
