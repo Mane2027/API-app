@@ -64,7 +64,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origenes,
     allow_origins=["http://localhost:5173",
-    "https://erp-frontend-navy-seven.vercel.app",
+    "https://erp-frontend-navy-seven.vercel.app",]
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
