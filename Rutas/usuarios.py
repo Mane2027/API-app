@@ -19,7 +19,10 @@ class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
-    role: Literal["admin", "user"] = "user"
+    role: Literal["admin", "inventario", "vendedor", "user"]
+    ROLES_VALIDOS = ("admin", "inventario", "vendedor", "user")
+
+
 
 
 class UserLogin(BaseModel):
