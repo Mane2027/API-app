@@ -12,8 +12,10 @@ from Rutas.logs import registrar_log
  
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
  
-# Roles que pueden ver y registrar ventas
+# Roles que pueden registrar ventas
 ROLES_VENTAS = ("admin", "vendedor")
+# Roles que pueden consultarlas (inventario solo lee)
+ROLES_CONSULTA = ("admin", "vendedor", "inventario")
  
  
 class SaleItem(BaseModel):
@@ -99,7 +101,7 @@ def registrar_venta(
     return {"message": "Venta registrada correctamente", "venta_id": venta.id, "total": total}
  
  
-@router.get("/", dependencies=[Depends(require_role(*ROLES_VENTAS))])
+@router.get("/", dependencies=[Depends(require_role(*ROLES_CONSULTA))])
 def listar_ventas(db: Session = Depends(get_db)):
     """Lista las ventas con sus productos (items): nombre, cantidad y precio."""
     ventas = db.query(Sale).order_by(Sale.date.desc()).all()
@@ -128,7 +130,7 @@ def listar_ventas(db: Session = Depends(get_db)):
     ]
  
  
-@router.get("/{venta_id}", dependencies=[Depends(require_role(*ROLES_VENTAS))])
+@router.get("/{venta_id}", dependencies=[Depends(require_role(*ROLES_CONSULTA))])
 def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
     venta = db.get(Sale, venta_id)
     if not venta:
@@ -154,3 +156,4 @@ def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
         ],
     }
  
+   
