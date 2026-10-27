@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from dependencies import get_db
 from models import Product, Purchase, Sale, SaleDetail
 from Rutas.auth import verificar_token
+from fastapi import Query
+
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -20,11 +22,8 @@ def _mes_atras(d: date, n: int) -> date:
     return date(d.year + m // 12, m % 12 + 1, 1)
 
 
-@router.get("/resumen", dependencies=[Depends(verificar_token)])
-def resumen(db: Session = Depends(get_db)):
-    hoy = date.today()
-    inicio_mes = datetime.combine(hoy.replace(day=1), time.min)
-    activos = Product.is_active.is_(True)
+@router.get("/resumen")
+def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
 
     # Tarjetas
     total_productos = db.query(func.count(Product.id)).filter(activos).scalar() or 0
