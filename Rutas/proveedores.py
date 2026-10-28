@@ -22,7 +22,7 @@ class ProviderSchema(BaseModel):
 def crear_proveedor(
     data: ProviderSchema,
     db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
+    payload: dict = Depends(require_role("admin","inventario")),
 ):
     proveedor = Provider(**data.model_dump())
     db.add(proveedor)
@@ -51,7 +51,7 @@ def actualizar_proveedor(
     provider_id: int,
     data: ProviderSchema,
     db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
+    payload: dict = Depends(require_role("admin","inventario")),
 ):
     proveedor = db.get(Provider, provider_id)
     if not proveedor:
@@ -71,7 +71,7 @@ def actualizar_proveedor(
 def eliminar_proveedor(
     provider_id: int,
     db: Session = Depends(get_db),
-    payload: dict = Depends(require_role("admin")),
+    payload: dict = Depends(require_role("admin","inventario")),
 ):
     proveedor = db.get(Provider, provider_id)
     if not proveedor:
