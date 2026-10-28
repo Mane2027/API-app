@@ -27,10 +27,11 @@ class ResetIn(BaseModel):
     new_password: str = Field(min_length=8, max_length=72)
 
 
-def create_reset_token(email: str) -> str:
+def create_reset_token(user) -> str:
     exp = datetime.now(timezone.utc) + timedelta(minutes=15)
     return jwt.encode(
-        {"sub": email, "type": "reset", "exp": exp},
+        {"sub": user.email, "type": "reset", "exp": exp,
+         "pwd": user.password[-12:]},
         RESET_SECRET,
         algorithm="HS256",
     )
@@ -61,7 +62,7 @@ def forgot_password(data: ForgotIn, db: Session = Depends(get_db)):
         .first()
     )
     if user:
-        token = create_reset_token(user.email)
+       token = create_reset_token(user)
         try:
             send_email(user.email, f"{FRONTEND_URL}/restablecer?token={token}")
         except Exception as e:
@@ -79,10 +80,10 @@ def reset_password(data: ResetIn, db: Session = Depends(get_db)):
     except JWTError:
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
-    user = db.query(User).filter_by(email=payload["sub"]).first()
-    if not user:
-        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+   user = db.query(User).filter_by(email=payload["sub"]).first()
+if not user or payload.get("pwd") != user.password[-12:]:
+    raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
-    user.password = hash_password(data.new_password)
-    db.commit()
-    return {"message": "Contraseña actualizada"}
+user.password = hash_password(data.new_password)
+db.commit()
+return {"message": "Contraseña actualizada"}
