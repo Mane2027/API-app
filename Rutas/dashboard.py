@@ -28,7 +28,7 @@ def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
  
     # IMPORTANTE: usa aquí la misma condición de "producto activo" que tenías
     # antes (el nombre del campo puede ser active, is_active, activo...).
-    activos = Product.active == True  # noqa: E712
+    activos = Product.is_active.is_(True)  # noqa: E712
  
     # Tarjetas (estado actual y mes en curso: no dependen del filtro)
     total_productos = db.query(func.count(Product.id)).filter(activos).scalar() or 0
