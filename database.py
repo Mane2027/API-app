@@ -3,24 +3,29 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# En Docker se define DATABASE_URL (ruta absoluta = 4 barras: sqlite:////app/data/database.db).
-# Sin la variable, usa ./data/database.db
-DATABASE_URL = os.getenv("DATABASE_URL", "postgres:///./data/database.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if  DATABASE_URL.startswith("postgres://"):
-    ruta =DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    carpeta = os.path.dirname(ruta)
-    if carpeta:
-        os.makedirs(carpeta, exist_ok=True)
+if not DATABASE_URL:
+    if os.getenv("RENDER"):  # Render define esta variable automáticamente
+        raise RuntimeError("Falta DATABASE_URL en producción")
+    # Solo desarrollo local
+    os.makedirs("data", exist_ok=True)
+    DATABASE_URL = "sqlite:///./data/database.db"
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# Algunos proveedores entregan "postgres://", SQLAlchemy exige "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
-Base = declarative_base()
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # comprueba que la conexión siga viva antes de usarla
+        pool_recycle=300,    # renueva conexiones cada 5 minutos
+    )
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,   # comprueba que la conexión siga viva antes de usarla
-    pool_recycle=300,     # renueva conexiones cada 5 minutos
+SessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, expire_on_commit=False, bind=engine
 )
+Base = declarative_base()
