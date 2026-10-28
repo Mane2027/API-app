@@ -78,10 +78,10 @@ def reset_password(data: ResetIn, db: Session = Depends(get_db)):
     except JWTError:
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
-   user = db.query(User).filter_by(email=payload["sub"]).first()
-if not user or payload.get("pwd") != user.password[-12:]:
-    raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    user = db.query(User).filter_by(email=payload["sub"]).first()
+    if not user or payload.get("pwd") != user.password[-12:]:
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
-user.password = hash_password(data.new_password)
-db.commit()
-return {"message": "Contraseña actualizada"}
+    user.password = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada"}
