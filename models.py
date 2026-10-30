@@ -1,21 +1,21 @@
 from datetime import datetime, timezone
-
+ 
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, Text,
 )
 from sqlalchemy.orm import relationship
-
+ 
 from database import Base
-
-
+ 
+ 
 def utcnow():
     """Fecha/hora UTC sin zona (datetime.utcnow() está deprecado en Python 3.12)."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
+ 
+ 
 class Product(Base):
     __tablename__ = "products"
-
+ 
     id = Column(Integer, primary_key=True)
     sku = Column(String(50), unique=True, nullable=False)
     name = Column(String(150), nullable=False)
@@ -28,33 +28,34 @@ class Product(Base):
     min_stock = Column(Integer, default=5)
     expiration_date = Column(Date)
     is_active = Column(Boolean, default=True)
+    tax_rate = Column(Float, nullable=False, default=0)  # NUEVO: IVA en % (0, 5 o 19)
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
-
+ 
+ 
 class User(Base):
     __tablename__ = "users"
-
+ 
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(200), nullable=False)
-    role = Column(String(20), default="user")  # user / admin
-
-
+    role = Column(String(20), default="user")  # admin / inventario / vendedor / user
+ 
+ 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
-
+ 
     id = Column(Integer, primary_key=True)
     username = Column(String(50), nullable=False)
     action = Column(String(50), nullable=False)
     details = Column(Text)
     timestamp = Column(DateTime, default=utcnow)
-
-
+ 
+ 
 class ProductHistory(Base):
     __tablename__ = "product_history"
-
+ 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, nullable=False)
     field = Column(String(50), nullable=False)
@@ -62,11 +63,11 @@ class ProductHistory(Base):
     new_value = Column(String(200))
     changed_by = Column(String(50))
     timestamp = Column(DateTime, default=utcnow)
-
-
+ 
+ 
 class InventoryMovement(Base):
     __tablename__ = "inventory_movements"
-
+ 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, nullable=False)
     movement_type = Column(String(20))  # entrada / salida
@@ -75,21 +76,21 @@ class InventoryMovement(Base):
     new_stock = Column(Integer, nullable=False)
     performed_by = Column(String(50))
     timestamp = Column(DateTime, default=utcnow)
-
-
+ 
+ 
 class StockAlert(Base):
     __tablename__ = "stock_alerts"
-
+ 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, nullable=False)
     message = Column(String(200))
     level = Column(String(20))  # bajo / agotado
     timestamp = Column(DateTime, default=utcnow)
-
-
+ 
+ 
 class Provider(Base):
     __tablename__ = "providers"
-
+ 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     contact_name = Column(String(100))
@@ -97,48 +98,84 @@ class Provider(Base):
     email = Column(String(100))
     address = Column(String(200))
     created_at = Column(DateTime, default=utcnow)
-
-
+ 
+ 
+# ---------------------------------------------------------------------------
+# Facturación (NUEVO)
+# ---------------------------------------------------------------------------
+ 
+class Customer(Base):
+    __tablename__ = "customers"
+ 
+    id = Column(Integer, primary_key=True)
+    name = Column(String(150), nullable=False)
+    document = Column(String(30), index=True)  # NIT o cédula
+    email = Column(String(100))
+    phone = Column(String(50))
+    address = Column(String(200))
+    created_at = Column(DateTime, default=utcnow)
+ 
+ 
+class AppSetting(Base):
+    """Configuración general: se usa una sola fila."""
+    __tablename__ = "app_settings"
+ 
+    id = Column(Integer, primary_key=True)
+    vat_responsible = Column(Boolean, default=False, nullable=False)
+ 
+ 
 class Sale(Base):
+    """Una venta es una factura. Las ventas anteriores quedan sin número ni cliente."""
     __tablename__ = "sales"
-
+ 
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, default=utcnow)
     total = Column(Float, nullable=False)
     user = Column(String(50))  # usuario que realizó la venta
-
-
+ 
+    # NUEVO
+    invoice_number = Column(Integer, unique=True)  # NULL en ventas viejas
+    customer_id = Column(Integer, ForeignKey("customers.id"))
+    subtotal = Column(Float, default=0)
+    tax_total = Column(Float, default=0)
+    status = Column(String(20), nullable=False, default="emitida")  # emitida / anulada
+ 
+    customer = relationship("Customer")
+ 
+ 
 class SaleDetail(Base):
     __tablename__ = "sale_details"
-
+ 
     id = Column(Integer, primary_key=True)
     sale_id = Column(Integer, ForeignKey("sales.id"))
     product_id = Column(Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
-
+    tax_rate = Column(Float, default=0)  # NUEVO: IVA congelado al vender
+ 
     sale = relationship("Sale", backref="details")
-
-
+ 
+ 
 class Purchase(Base):
     __tablename__ = "purchases"
-
+ 
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, default=utcnow)
     total = Column(Float, nullable=False)
     provider_id = Column(Integer, ForeignKey("providers.id"))
     user = Column(String(50))
-
+ 
     provider = relationship("Provider", backref="purchases")
-
-
+ 
+ 
 class PurchaseDetail(Base):
     __tablename__ = "purchase_details"
-
+ 
     id = Column(Integer, primary_key=True)
     purchase_id = Column(Integer, ForeignKey("purchases.id"))
     product_id = Column(Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
-
+ 
     purchase = relationship("Purchase", backref="details")
+ 
