@@ -187,7 +187,7 @@ def listar_ventas(db: Session = Depends(get_db)):
             "invoice_number": v.invoice_number,
             "status": v.status,
             "payment_method": v.payment_method,
-            "items": items_por_venta.get(v.id, []),,
+            "items": items_por_venta.get(v.id, []),
         }
         for v in ventas
     ]
