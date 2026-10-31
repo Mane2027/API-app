@@ -102,7 +102,10 @@ def reporte_ventas_rango(
 ):
     desde, hasta = _rango(fecha_inicio, fecha_fin)
     ventas = (
-        db.query(Sale).filter(Sale.date >= desde, Sale.date < hasta).order_by(Sale.date).all()
+        db.query(Sale)
+        .filter(Sale.date >= desde, Sale.date < hasta, Sale.status == "emitida")
+        .order_by(Sale.date)
+        .all()
     )
     filas = [(v.id, _fmt(v.date), v.user, round(v.total, 2)) for v in ventas]
     resumen = [
