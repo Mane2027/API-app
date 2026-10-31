@@ -16,7 +16,7 @@ from Rutas.reportes_extra import router as reportes_extra_router
 from Rutas.dashboard import router as dashboard_router
 from Rutas.facturas import router as facturas_router
 from Rutas.clientes import router as clientes_router
-from Rutas import configuracion
+
 
 
 
