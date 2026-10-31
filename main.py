@@ -16,6 +16,8 @@ from Rutas.reportes_extra import router as reportes_extra_router
 from Rutas.dashboard import router as dashboard_router
 from Rutas.facturas import router as facturas_router
 from Rutas.clientes import router as clientes_router
+from Rutas import configuracion
+
 
 
 def crear_admin_inicial():
@@ -88,6 +90,7 @@ app.include_router(reportes_extra_router)
 app.include_router(dashboard_router)
 app.include_router(facturas_router)
 app.include_router(clientes_router)
+app.include_router(configuracion.router)
 
 
 @app.get("/")
