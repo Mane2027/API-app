@@ -25,7 +25,13 @@ def _compra(c: Purchase) -> dict:
  
  
 def _venta(v: Sale) -> dict:
-    return {"id": v.id, "date": v.date, "total": v.total, "user": v.user}
+    return {
+        "id": v.id,
+        "date": v.date,
+        "total": v.total,
+        "user": v.user,
+        "invoice_number": v.invoice_number,  # NULL en ventas hechas por /ventas
+    }
  
  
 # ---------------------------------------------------------
@@ -155,11 +161,15 @@ def compras_global(db: Session = Depends(get_db)):
  
  
 # ---------------------------------------------------------
-# VENTAS
+# VENTAS (solo cuentan las emitidas; las facturas anuladas se excluyen)
 # ---------------------------------------------------------
 @router.get("/ventas/fecha")
 def ventas_por_fecha(fecha: date, db: Session = Depends(get_db)):
-    ventas = db.query(Sale).filter(func.date(Sale.date) == fecha).all()
+    ventas = (
+        db.query(Sale)
+        .filter(func.date(Sale.date) == fecha, Sale.status == "emitida")
+        .all()
+    )
     return {
         "fecha": fecha,
         "total_ventas": len(ventas),
@@ -177,7 +187,7 @@ def ventas_por_producto(product_id: int, db: Session = Depends(get_db)):
     detalles = (
         db.query(SaleDetail.quantity, SaleDetail.price, Sale.date)
         .join(Sale, Sale.id == SaleDetail.sale_id)
-        .filter(SaleDetail.product_id == product_id)
+        .filter(SaleDetail.product_id == product_id, Sale.status == "emitida")
         .all()
     )
     return {
@@ -190,7 +200,7 @@ def ventas_por_producto(product_id: int, db: Session = Depends(get_db)):
  
 @router.get("/ventas/global")
 def ventas_global(db: Session = Depends(get_db)):
-    ventas = db.query(Sale).all()
+    ventas = db.query(Sale).filter(Sale.status == "emitida").all()
     return {
         "total_ventas": len(ventas),
         "total_generado": sum(v.total for v in ventas),
