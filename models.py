@@ -139,6 +139,7 @@ class Sale(Base):
     subtotal = Column(Float, default=0)
     tax_total = Column(Float, default=0)
     status = Column(String(20), nullable=False, default="emitida")  # emitida / anulada
+    payment_method = Column(String(20), nullable=True)
  
     customer = relationship("Customer")
  
