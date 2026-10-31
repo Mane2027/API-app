@@ -30,6 +30,9 @@ def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
     # antes (el nombre del campo puede ser active, is_active, activo...).
     activos = Product.is_active.is_(True)  # noqa: E712
  
+    # Solo cuentan las ventas emitidas: las facturas anuladas no suman
+    emitida = Sale.status == "emitida"
+ 
     # Tarjetas (estado actual y mes en curso: no dependen del filtro)
     total_productos = db.query(func.count(Product.id)).filter(activos).scalar() or 0
     unidades = db.query(func.coalesce(func.sum(Product.stock), 0)).filter(activos).scalar() or 0
@@ -42,7 +45,9 @@ def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
         .filter(activos, Product.stock <= Product.min_stock).scalar() or 0
     )
     ventas_mes = (
-        db.query(func.coalesce(func.sum(Sale.total), 0)).filter(Sale.date >= inicio_mes).scalar() or 0
+        db.query(func.coalesce(func.sum(Sale.total), 0))
+        .filter(Sale.date >= inicio_mes, emitida)
+        .scalar() or 0
     )
     compras_mes = (
         db.query(func.coalesce(func.sum(Purchase.total), 0)).filter(Purchase.date >= inicio_mes).scalar() or 0
@@ -52,7 +57,7 @@ def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
     inicios = [_mes_atras(hoy, n) for n in range(meses - 1, -1, -1)]
     desde = datetime.combine(inicios[0], time.min)
     ventas_por_mes, compras_por_mes = defaultdict(float), defaultdict(float)
-    for v in db.query(Sale).filter(Sale.date >= desde).all():
+    for v in db.query(Sale).filter(Sale.date >= desde, emitida).all():
         ventas_por_mes[(v.date.year, v.date.month)] += v.total
     for c in db.query(Purchase).filter(Purchase.date >= desde).all():
         compras_por_mes[(c.date.year, c.date.month)] += c.total
@@ -77,7 +82,7 @@ def resumen(meses: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
     filas = (
         db.query(SaleDetail.product_id, func.sum(SaleDetail.quantity).label("total"))
         .join(Sale, SaleDetail.sale_id == Sale.id)
-        .filter(Sale.date >= desde)
+        .filter(Sale.date >= desde, emitida)
         .group_by(SaleDetail.product_id)
         .order_by(func.sum(SaleDetail.quantity).desc())
         .limit(5).all()
