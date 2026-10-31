@@ -14,6 +14,7 @@ from Rutas.auth import hash_password
 from Rutas.recuperar import router as recuperar_router
 from Rutas.reportes_extra import router as reportes_extra_router
 from Rutas.dashboard import router as dashboard_router
+from Rutas.facturas import router as facturas_router
 
 
 def crear_admin_inicial():
@@ -84,6 +85,7 @@ for modulo in (
 app.include_router(recuperar_router)
 app.include_router(reportes_extra_router)
 app.include_router(dashboard_router)
+app.include_router(facturas.router).
 
 
 @app.get("/")
