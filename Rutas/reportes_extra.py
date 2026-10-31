@@ -13,8 +13,6 @@ from Rutas.auth import require_role
 
 router = APIRouter(prefix="/reportes", tags=["Reportes"])
 
-ROLES_REPORTES = ("admin", "inventario")
-Formato = Literal["excel", "pdf"]
 
 
 def _rango(inicio: date, fin: date):
