@@ -240,7 +240,6 @@ def reporte_vencimientos(
     "daviplata": "Daviplata",
 }
 
-
 @router.get("/ventas/metodo-pago", dependencies=[Depends(require_role(*ROLES_REPORTES))])
 def reporte_ventas_metodo_pago(
     fecha_inicio: date,
@@ -259,7 +258,6 @@ def reporte_ventas_metodo_pago(
         .group_by(Sale.payment_method)
         .all()
     )
-
     # Mayor total primero; las ventas sin método guardado salen como "Sin registrar"
     grupos = sorted(grupos, key=lambda g: g[2], reverse=True)
     filas = [
