@@ -124,6 +124,7 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)):
         "detalles": [
             {
                 "product_id": d.product_id,
+                "sku": sku,
                 "producto": nombre,
                 "cantidad": d.quantity,
                 "precio_unitario": d.price,
