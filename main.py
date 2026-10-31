@@ -85,7 +85,7 @@ for modulo in (
 app.include_router(recuperar_router)
 app.include_router(reportes_extra_router)
 app.include_router(dashboard_router)
-app.include_router(facturas.router)
+app.include_router(facturas_router)
 
 
 @app.get("/")
