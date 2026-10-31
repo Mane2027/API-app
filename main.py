@@ -90,7 +90,7 @@ app.include_router(reportes_extra_router)
 app.include_router(dashboard_router)
 app.include_router(facturas_router)
 app.include_router(clientes_router)
-app.include_router(configuracion.router)
+
 
 
 @app.get("/")
