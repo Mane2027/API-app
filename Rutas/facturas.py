@@ -8,12 +8,14 @@ from models import Customer, InventoryMovement, Product, Sale, SaleDetail
 from Rutas.auth import require_role
 from Rutas.logs import registrar_log
 from Rutas.ventas import ROLES_CONSULTA, ROLES_VENTAS, SaleSchema, crear_venta
+from typing import Literal
  
 router = APIRouter(prefix="/facturas", tags=["Facturas"])
  
  
 class InvoiceSchema(SaleSchema):
     customer_id: int | None = None  # sin cliente = consumidor final
+    payment_method: Literal["efectivo", "transferencia", "nequi", "daviplata"] | None = None
  
  
 @router.post("/")
@@ -30,6 +32,7 @@ def crear_factura(
         background,
         customer_id=data.customer_id,
         facturar=True,
+        payment_method=data.payment_method,
     )
     registrar_log(
         db,
@@ -105,6 +108,7 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)):
         "numero": venta.invoice_number,
         "fecha": venta.date,
         "estado": venta.status,
+        "metodo_pago": venta.payment_method,
         "usuario": venta.user,
         "cliente": (
             {
