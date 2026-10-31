@@ -93,7 +93,7 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Factura no encontrada")
  
     detalles = (
-        db.query(SaleDetail, Product.name)
+        db.query(SaleDetail, Product.name, Product.sku)
         .outerjoin(Product, Product.id == SaleDetail.product_id)
         .filter(SaleDetail.sale_id == factura_id)
         .all()
