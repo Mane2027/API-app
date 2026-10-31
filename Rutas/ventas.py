@@ -35,6 +35,8 @@ def crear_venta(
     background: BackgroundTasks,
     customer_id: int | None = None,
     facturar: bool = False,
+    payment_method: str | None = None,
+
 ) -> Sale:
     """
     Lógica común de venta y factura: valida stock, calcula IVA, descuenta
@@ -89,6 +91,8 @@ def crear_venta(
         user=usuario,
         customer_id=customer_id,
         status="emitida",
+        payment_method=payment_method,
+
     )
     db.add(venta)
     db.flush()
