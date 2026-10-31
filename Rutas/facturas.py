@@ -136,7 +136,7 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)):
                 "subtotal": round(d.quantity * d.price, 2),
                 "iva": round(d.quantity * d.price * (d.tax_rate or 0) / 100, 2),
             }
-            for d, nombre in detalles
+            for d, nombre,sku in detalles
         ],
     }
  
