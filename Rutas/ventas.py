@@ -2,10 +2,11 @@ from collections import defaultdict
  
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.orm import Session
  
 from dependencies import get_db
-from models import InventoryMovement, Product, Sale, SaleDetail
+from models import AppSetting, Customer, InventoryMovement, Product, Sale, SaleDetail
 from Rutas.alertas import enviar_alertas_por_correo, generar_alerta
 from Rutas.auth import require_role
 from Rutas.logs import registrar_log
@@ -27,17 +28,26 @@ class SaleSchema(BaseModel):
     items: list[SaleItem] = Field(min_length=1)
  
  
-@router.post("/")
-def registrar_venta(
-    data: SaleSchema,
+def crear_venta(
+    db: Session,
+    items: list[SaleItem],
+    usuario: str,
     background: BackgroundTasks,
-    db: Session = Depends(get_db),
-    payload: dict = Depends(require_role(*ROLES_VENTAS)),
-):
+    customer_id: int | None = None,
+    facturar: bool = False,
+) -> Sale:
+    """
+    Lógica común de venta y factura: valida stock, calcula IVA, descuenta
+    inventario y registra movimientos en una sola transacción.
+    Si facturar=True asigna número consecutivo de factura.
+    """
     # Si el mismo producto viene dos veces, se suman las cantidades
     cantidades: dict[int, int] = defaultdict(int)
-    for item in data.items:
+    for item in items:
         cantidades[item.product_id] += item.quantity
+ 
+    if customer_id is not None and not db.get(Customer, customer_id):
+        raise HTTPException(status_code=404, detail=f"Cliente {customer_id} no existe")
  
     # El precio sale de la base de datos, nunca del cliente
     productos = {}
@@ -54,9 +64,32 @@ def registrar_venta(
             )
         productos[pid] = producto
  
-    total = round(sum(productos[pid].price * qty for pid, qty in cantidades.items()), 2)
+    # IVA: solo se aplica si el negocio está marcado como responsable de IVA
+    config = db.query(AppSetting).first()
+    aplica_iva = bool(config and config.vat_responsible)
  
-    venta = Sale(total=total, user=payload["sub"])
+    subtotal = 0.0
+    impuestos = 0.0
+    tasas: dict[int, float] = {}
+    for pid, qty in cantidades.items():
+        producto = productos[pid]
+        tasa = (producto.tax_rate or 0) if aplica_iva else 0
+        linea = round(producto.price * qty, 2)
+        subtotal += linea
+        impuestos += round(linea * tasa / 100, 2)
+        tasas[pid] = tasa
+    subtotal = round(subtotal, 2)
+    impuestos = round(impuestos, 2)
+    total = round(subtotal + impuestos, 2)
+ 
+    venta = Sale(
+        total=total,
+        subtotal=subtotal,
+        tax_total=impuestos,
+        user=usuario,
+        customer_id=customer_id,
+        status="emitida",
+    )
     db.add(venta)
     db.flush()
  
@@ -79,7 +112,15 @@ def registrar_venta(
             )
         db.refresh(producto)
  
-        db.add(SaleDetail(sale_id=venta.id, product_id=pid, quantity=qty, price=producto.price))
+        db.add(
+            SaleDetail(
+                sale_id=venta.id,
+                product_id=pid,
+                quantity=qty,
+                price=producto.price,
+                tax_rate=tasas[pid],
+            )
+        )
         db.add(
             InventoryMovement(
                 product_id=pid,
@@ -87,18 +128,33 @@ def registrar_venta(
                 quantity=qty,
                 previous_stock=anterior,
                 new_stock=producto.stock,
-                performed_by=payload["sub"],
+                performed_by=usuario,
             )
         )
         mensaje = generar_alerta(db, producto)
         if mensaje:
             mensajes.append(mensaje)
  
+    # El número se pide al final, cuando ya se descontó todo el stock,
+    # para no gastar consecutivos en facturas que fallan por falta de stock
+    if facturar:
+        venta.invoice_number = db.execute(text("SELECT nextval('invoice_number_seq')")).scalar()
+ 
     db.commit()
     background.add_task(enviar_alertas_por_correo, mensajes)
+    return venta
  
-    registrar_log(db, payload["sub"], "venta", f"Venta ID {venta.id}, total {total}")
-    return {"message": "Venta registrada correctamente", "venta_id": venta.id, "total": total}
+ 
+@router.post("/")
+def registrar_venta(
+    data: SaleSchema,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_role(*ROLES_VENTAS)),
+):
+    venta = crear_venta(db, data.items, payload["sub"], background)
+    registrar_log(db, payload["sub"], "venta", f"Venta ID {venta.id}, total {venta.total}")
+    return {"message": "Venta registrada correctamente", "venta_id": venta.id, "total": venta.total}
  
  
 @router.get("/", dependencies=[Depends(require_role(*ROLES_CONSULTA))])
@@ -124,6 +180,8 @@ def listar_ventas(db: Session = Depends(get_db)):
             "date": v.date,
             "total": v.total,
             "user": v.user,
+            "invoice_number": v.invoice_number,
+            "status": v.status,
             "items": items_por_venta.get(v.id, []),
         }
         for v in ventas
@@ -156,4 +214,4 @@ def detalle_venta(venta_id: int, db: Session = Depends(get_db)):
         ],
     }
  
-   
+  
