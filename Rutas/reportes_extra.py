@@ -13,6 +13,15 @@ from Rutas.auth import require_role
 
 router = APIRouter(prefix="/reportes", tags=["Reportes"])
 
+ROLES_REPORTES = ("admin", "inventario")
+Formato = Literal["excel", "pdf"]
+
+ETIQUETAS_PAGO = {
+    "efectivo": "Efectivo",
+    "transferencia": "Transferencia",
+    "nequi": "Nequi",
+    "daviplata": "Daviplata",
+}
 
 
 def _rango(inicio: date, fin: date):
@@ -115,6 +124,41 @@ def reporte_ventas_rango(
         formato, f"ventas_{fecha_inicio}_{fecha_fin}",
         f"Ventas del {fecha_inicio} al {fecha_fin}",
         ["ID", "Fecha", "Usuario", "Total"], filas, resumen,
+    )
+
+
+@router.get("/ventas/metodo-pago", dependencies=[Depends(require_role(*ROLES_REPORTES))])
+def reporte_ventas_metodo_pago(
+    fecha_inicio: date,
+    fecha_fin: date,
+    formato: Formato = "excel",
+    db: Session = Depends(get_db),
+):
+    desde, hasta = _rango(fecha_inicio, fecha_fin)
+    grupos = (
+        db.query(
+            Sale.payment_method,
+            func.count(Sale.id),
+            func.coalesce(func.sum(Sale.total), 0),
+        )
+        .filter(Sale.date >= desde, Sale.date < hasta, Sale.status == "emitida")
+        .group_by(Sale.payment_method)
+        .all()
+    )
+    # Mayor total primero; las ventas sin método guardado salen como "Sin registrar"
+    grupos = sorted(grupos, key=lambda g: g[2], reverse=True)
+    filas = [
+        (ETIQUETAS_PAGO.get(metodo, "Sin registrar"), cantidad, round(float(total), 2))
+        for metodo, cantidad, total in grupos
+    ]
+    resumen = [
+        ("Número de ventas", sum(g[1] for g in grupos)),
+        ("Total vendido", round(sum(float(g[2]) for g in grupos), 2)),
+    ]
+    return _respuesta(
+        formato, f"ventas_metodo_pago_{fecha_inicio}_{fecha_fin}",
+        f"Ventas por método de pago del {fecha_inicio} al {fecha_fin}",
+        ["Método de pago", "Ventas", "Total"], filas, resumen,
     )
 
 
@@ -230,44 +274,4 @@ def reporte_vencimientos(
     return _respuesta(
         formato, f"vencimientos_{dias}_dias", f"Productos que vencen en los próximos {dias} días",
         ["SKU", "Nombre", "Marca", "Stock", "Vence", "Días restantes", "Estado"], filas, resumen,
-    )
-    ETIQUETAS_PAGO = {
-    "efectivo": "Efectivo",
-    "transferencia": "Transferencia",
-    "nequi": "Nequi",
-    "daviplata": "Daviplata",
-}
-
-@router.get("/ventas/metodo-pago", dependencies=[Depends(require_role(*ROLES_REPORTES))])
-def reporte_ventas_metodo_pago(
-    fecha_inicio: date,
-    fecha_fin: date,
-    formato: Formato = "excel",
-    db: Session = Depends(get_db),
-):
-    desde, hasta = _rango(fecha_inicio, fecha_fin)
-    grupos = (
-        db.query(
-            Sale.payment_method,
-            func.count(Sale.id),
-            func.coalesce(func.sum(Sale.total), 0),
-        )
-        .filter(Sale.date >= desde, Sale.date < hasta, Sale.status == "emitida")
-        .group_by(Sale.payment_method)
-        .all()
-    )
-    # Mayor total primero; las ventas sin método guardado salen como "Sin registrar"
-    grupos = sorted(grupos, key=lambda g: g[2], reverse=True)
-    filas = [
-        (ETIQUETAS_PAGO.get(metodo, "Sin registrar"), cantidad, round(float(total), 2))
-        for metodo, cantidad, total in grupos
-    ]
-    resumen = [
-        ("Número de ventas", sum(g[1] for g in grupos)),
-        ("Total vendido", round(sum(float(g[2]) for g in grupos), 2)),
-    ]
-    return _respuesta(
-        formato, f"ventas_metodo_pago_{fecha_inicio}_{fecha_fin}",
-        f"Ventas por método de pago del {fecha_inicio} al {fecha_fin}",
-        ["Método de pago", "Ventas", "Total"], filas, resumen,
     )
